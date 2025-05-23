@@ -458,7 +458,7 @@ void ship_receiver_plugin::set_program_options( appbase::options_description& cl
       ("ship-endpoint", boost::program_options::value<std::string>()->default_value("127.0.0.1:8999"),
         "SHiP host address")
       ("ship-core-account", boost::program_options::value<std::string>()->default_value("evmevmevmevm"),
-        "Account on the core blockchain that hosts the EOS EVM Contract")
+        "Account on the core blockchain that hosts the EVM Contract")
       ("ship-max-retry", boost::program_options::value<uint32_t>(),
         "Max retry times before give up when trying to reconnect to SHiP endpoints"  )
       ("ship-delay-second", boost::program_options::value<uint32_t>(),
