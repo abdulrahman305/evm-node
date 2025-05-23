@@ -247,7 +247,7 @@ jobs:
       - name: Download EVM Contract
         uses: AntelopeIO/asset-artifact-download-action@v3
         with:
-          owner: eosnetworkfoundation
+          owner: VaultaFoundation
           repo: evm-contract
           target: '${{needs.versions.outputs.evm-contract-target}}'
           prereleases: ${{fromJSON(needs.versions.outputs.evm-contract-prerelease)}}
