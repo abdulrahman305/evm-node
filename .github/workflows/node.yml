@@ -28,8 +28,8 @@ on:
         - default
         - true
         - false
-      override-eos-evm-miner:
-        description: 'Override eos-evm-miner target'
+      override-evm-miner:
+        description: 'Override evm-miner target'
         type: string
 
 defaults:
@@ -139,7 +139,7 @@ jobs:
       cdt-prerelease: ${{steps.versions.outputs.cdt-prerelease}}
       eos-evm-contract-target: ${{steps.versions.outputs.eos-evm-contract-target}}
       eos-evm-contract-prerelease: ${{steps.versions.outputs.eos-evm-contract-prerelease}}
-      eos-evm-miner-target: ${{steps.versions.outputs.eos-evm-miner-target}}
+      evm-miner-target: ${{steps.versions.outputs.evm-miner-target}}
     steps:
       - name: Setup versions from input or defaults
         id: versions
@@ -153,7 +153,7 @@ jobs:
           echo cdt-prerelease=$(echo "$DEFAULTS_JSON" | jq -r '."cdt".prerelease') >> $GITHUB_OUTPUT
           echo eos-evm-contract-target=$(echo "$DEFAULTS_JSON" | jq -r '."eos-evm-contract".target') >> $GITHUB_OUTPUT
           echo eos-evm-contract-prerelease=$(echo "$DEFAULTS_JSON" | jq -r '."eos-evm-contract".prerelease') >> $GITHUB_OUTPUT
-          echo eos-evm-miner-target=$(echo "$DEFAULTS_JSON" | jq -r '."eos-evm-miner".target') >> $GITHUB_OUTPUT
+          echo evm-miner-target=$(echo "$DEFAULTS_JSON" | jq -r '."evm-miner".target') >> $GITHUB_OUTPUT
 
           if [[ "${{inputs.override-cdt}}" != "" ]]; then
             echo cdt-target=${{inputs.override-cdt}} >> $GITHUB_OUTPUT
@@ -167,8 +167,8 @@ jobs:
           if [[ "${{inputs.override-eos-evm-contract-prerelease}}" == +(true|false) ]]; then
             echo eos-evm-contract-prerelease=${{inputs.override-eos-evm-contract-prerelease}} >> $GITHUB_OUTPUT
           fi
-          if [[ "${{inputs.override-eos-evm-miner}}" != "" ]]; then
-            echo eos-evm-miner-target=${{inputs.override-eos-evm-miner}} >> $GITHUB_OUTPUT
+          if [[ "${{inputs.override-evm-miner}}" != "" ]]; then
+            echo evm-miner-target=${{inputs.override-evm-miner}} >> $GITHUB_OUTPUT
           fi
 
   integration-test:
@@ -272,12 +272,12 @@ jobs:
           app_id: ${{ secrets.TRUSTEVM_CI_APP_ID }}
           private_key: ${{ secrets.TRUSTEVM_CI_APP_KEY }}
 
-      - name: Checkout eos-evm-miner
+      - name: Checkout evm-miner
         uses: actions/checkout@v4
         with:
-          repository: VaultaFoundation/eos-evm-miner
-          path: eos-evm-miner
-          ref: '${{needs.versions.outputs.eos-evm-miner-target}}'
+          repository: VaultaFoundation/evm-miner
+          path: evm-miner
+          ref: '${{needs.versions.outputs.evm-miner-target}}'
 
       - name: Download EVM Node builddir
         uses: actions/download-artifact@v4
@@ -306,10 +306,10 @@ jobs:
           node --version
           npm --version
 
-      - name: Build eos-evm-miner
-        id: eos-evm-miner-build
+      - name: Build evm-miner
+        id: evm-miner-build
         run: |
-          pushd eos-evm-miner
+          pushd evm-miner
           echo "EVM_MINER_ROOT=$(pwd)" >> "$GITHUB_OUTPUT"
           npm install
           npm run build
@@ -319,7 +319,7 @@ jobs:
         run: |
           mkdir test_run_root
           cd test_run_root
-          ${{ steps.evm-node-build.outputs.EVM_NODE_BUILD }}/tests/nodeos_eos_evm_test.py -v --eos-evm-contract-root ${{ steps.evm-contract.outputs.EVM_CONTRACT }} --eos-evm-build-root ${{ steps.evm-node-build.outputs.EVM_NODE_BUILD }} --use-miner ${{ steps.eos-evm-miner-build.outputs.EVM_MINER_ROOT }}
+          ${{ steps.evm-node-build.outputs.EVM_NODE_BUILD }}/tests/nodeos_eos_evm_test.py -v --eos-evm-contract-root ${{ steps.evm-contract.outputs.EVM_CONTRACT }} --eos-evm-build-root ${{ steps.evm-node-build.outputs.EVM_NODE_BUILD }} --use-miner ${{ steps.evm-miner-build.outputs.EVM_MINER_ROOT }}
           
       - name: Test Leap Integration - with Brownie Framework
         run: |
@@ -333,13 +333,13 @@ jobs:
           pip install flask
           pip install flask-cors --upgrade
           brownie networks add Ethereum localhost5000 host=http://127.0.0.1:5000 chainid=15555
-          ${{ steps.evm-node-build.outputs.EVM_NODE_BUILD }}/tests/nodeos_eos_evm_brownietest.py -v --eos-evm-contract-root ${{ steps.evm-contract.outputs.EVM_CONTRACT }} --eos-evm-build-root ${{ steps.evm-node-build.outputs.EVM_NODE_BUILD }} --use-miner ${{ steps.eos-evm-miner-build.outputs.EVM_MINER_ROOT }} --flask-proxy-root ${{ steps.evm-node-build.outputs.EVM_NODE_BUILD }}/tests/
+          ${{ steps.evm-node-build.outputs.EVM_NODE_BUILD }}/tests/nodeos_eos_evm_brownietest.py -v --eos-evm-contract-root ${{ steps.evm-contract.outputs.EVM_CONTRACT }} --eos-evm-build-root ${{ steps.evm-node-build.outputs.EVM_NODE_BUILD }} --use-miner ${{ steps.evm-miner-build.outputs.EVM_MINER_ROOT }} --flask-proxy-root ${{ steps.evm-node-build.outputs.EVM_NODE_BUILD }}/tests/
           
       - name: Test Leap Integration - different gas token
         run: |
           mkdir -p test_run_root
           cd test_run_root
-          ${{ steps.evm-node-build.outputs.EVM_NODE_BUILD }}/tests/nodeos_eos_evm_different_token_test.py -v --eos-evm-contract-root ${{ steps.evm-contract.outputs.EVM_CONTRACT }} --eos-evm-build-root ${{ steps.evm-node-build.outputs.EVM_NODE_BUILD }} --use-miner ${{ steps.eos-evm-miner-build.outputs.EVM_MINER_ROOT }}
+          ${{ steps.evm-node-build.outputs.EVM_NODE_BUILD }}/tests/nodeos_eos_evm_different_token_test.py -v --eos-evm-contract-root ${{ steps.evm-contract.outputs.EVM_CONTRACT }} --eos-evm-build-root ${{ steps.evm-node-build.outputs.EVM_NODE_BUILD }} --use-miner ${{ steps.evm-miner-build.outputs.EVM_MINER_ROOT }}
 
       - name: Test Web-Socket Integration
         run: |

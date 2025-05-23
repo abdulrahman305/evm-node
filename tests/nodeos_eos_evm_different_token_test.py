@@ -42,17 +42,17 @@ from antelope_name import convert_name_to_value
 # Need to install:
 #   web3      - pip install web3
 #
-# --use-miner path to eos-evm-miner. if specified then uses eos-evm-miner to get gas price.
+# --use-miner path to evm-miner. if specified then uses evm-miner to get gas price.
 # --eos-evm-build-root should point to the root of EVM build dir
 # --eos-evm-contract-root should point to root of EVM contract build dir
 #
 # Example (Running with leap src build):
 #  cd ~/leap/build
-#  ~/evm-node/build/tests/nodeos_eos_evm_test.py --eos-evm-contract-root ~/eos-evm/build --eos-evm-build-root ~/evm-node/build --use-miner ~/eos-evm-miner --leave-running
+#  ~/evm-node/build/tests/nodeos_eos_evm_test.py --eos-evm-contract-root ~/eos-evm/build --eos-evm-build-root ~/evm-node/build --use-miner ~/evm-miner --leave-running
 #
 # Example (Running with leap dev-install):
 #  ln -s /usr/share/leap_testing/tests/TestHarness /usr/lib/python3/dist-packages/TestHarness
-#  ~/evm-node/build/tests/nodeos_eos_evm_test.py --eos-evm-contract-root ~/eos-evm/build --eos-evm-build-root ~/evm-node/build --use-miner ~/eos-evm-miner --leave-running
+#  ~/evm-node/build/tests/nodeos_eos_evm_test.py --eos-evm-contract-root ~/eos-evm/build --eos-evm-build-root ~/evm-node/build --use-miner ~/evm-miner --leave-running
 #
 #  Launches wallet at port: 9899
 #    Example: bin/cleos --wallet-url http://127.0.0.1:9899 ...
@@ -136,7 +136,7 @@ def setEosEvmMinerEnv():
     os.environ["MINER_PERMISSION"]="active"
     os.environ["EXPIRE_SEC"]="60"
 
-    Utils.Print(f"Set up configuration of eos-evm-miner via environment variables.")
+    Utils.Print(f"Set up configuration of evm-miner via environment variables.")
     Utils.Print(f"PRIVATE_KEY: {os.environ.get('PRIVATE_KEY')}")
     Utils.Print(f"MINER_ACCOUNT: {os.environ.get('MINER_ACCOUNT')}")
     Utils.Print(f"RPC_ENDPOINTS: {os.environ.get('RPC_ENDPOINTS')}")
@@ -431,13 +431,13 @@ try:
     trans=prodNode.pushMessage(evmAcc.name, "open", '[{0}]'.format(minerAcc.name), '-p {0}'.format(minerAcc.name))
 
     #
-    # Setup eos-evm-miner
+    # Setup evm-miner
     #
     if useMiner is not None:
         setEosEvmMinerEnv()
-        dataDir = Utils.DataDir + "eos-evm-miner"
-        outDir = dataDir + "/eos-evm-miner.stdout"
-        errDir = dataDir + "/eos-evm-miner.stderr"
+        dataDir = Utils.DataDir + "evm-miner"
+        outDir = dataDir + "/evm-miner.stdout"
+        errDir = dataDir + "/evm-miner.stderr"
         shutil.rmtree(dataDir, ignore_errors=True)
         os.makedirs(dataDir)
         outFile = open(outDir, "w")
