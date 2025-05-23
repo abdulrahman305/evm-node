@@ -49,7 +49,7 @@ from antelope_name import convert_name_to_value
 # --eos-evm-contract-root should point to root of EOS EVM contract build dir
 #
 #  cd build/tests
-# ./nodeos_eos_gasparam_fork_test.py --eos-evm-contract-root ~/workspaces/TrustEVM/build --eos-evm-build-root ~/workspaces/eos-evm-node/build -v
+# ./nodeos_eos_gasparam_fork_test.py --eos-evm-contract-root ~/workspaces/TrustEVM/build --eos-evm-build-root ~/workspaces/evm-node/build -v
 #
 #
 ###############################################################
@@ -498,8 +498,8 @@ try:
     Utils.Print("Generated EVM json genesis file in: %s" % genesisJson)
     Utils.Print("")
     Utils.Print("You can now run:")
-    Utils.Print("  eos-evm-node --plugin=blockchain_plugin --ship-core-account=eosio.evm --ship-endpoint=127.0.0.1:8999 --genesis-json=%s --chain-data=/tmp/data --verbosity=5" % genesisJson)
-    Utils.Print("  eos-evm-rpc --eos-evm-node=127.0.0.1:8080 --http-port=0.0.0.0:8881 --chaindata=/tmp/data --api-spec=eth,debug,net,trace")
+    Utils.Print("  evm-node --plugin=blockchain_plugin --ship-core-account=eosio.evm --ship-endpoint=127.0.0.1:8999 --genesis-json=%s --chain-data=/tmp/data --verbosity=5" % genesisJson)
+    Utils.Print("  evm-rpc --evm-node=127.0.0.1:8080 --http-port=0.0.0.0:8881 --chaindata=/tmp/data --api-spec=eth,debug,net,trace")
     Utils.Print("")
 
     #
@@ -634,27 +634,27 @@ try:
     # {"ram_price_mb":"5.0000 EOS","gas_price":10000000000}
     # {'consensusParameter': AttributeDict({'gasFeeParameters': AttributeDict({'gasCodedeposit': 477, 'gasNewaccount': 165519, 'gasSset': 167942, 'gasTxcreate': 289062, 'gasTxnewaccount': 165519}
 
-    # Launch eos-evm-node
+    # Launch evm-node
     dataDir = Utils.DataDir + "eos_evm"
-    nodeStdOutDir = dataDir + "/eos-evm-node.stdout"
-    nodeStdErrDir = dataDir + "/eos-evm-node.stderr"
+    nodeStdOutDir = dataDir + "/evm-node.stdout"
+    nodeStdErrDir = dataDir + "/evm-node.stderr"
     shutil.rmtree(dataDir, ignore_errors=True)
     os.makedirs(dataDir)
     outFile = open(nodeStdOutDir, "w")
     errFile = open(nodeStdErrDir, "w")
-    cmd = f"{eosEvmBuildRoot}/bin/eos-evm-node --plugin=blockchain_plugin --ship-core-account=eosio.evm --ship-endpoint=127.0.0.1:8999 --genesis-json={genesisJson} --verbosity=5 --nocolor=1 --chain-data={dataDir}"
+    cmd = f"{eosEvmBuildRoot}/bin/evm-node --plugin=blockchain_plugin --ship-core-account=eosio.evm --ship-endpoint=127.0.0.1:8999 --genesis-json={genesisJson} --verbosity=5 --nocolor=1 --chain-data={dataDir}"
     Utils.Print(f"Launching: {cmd}")
     cmdArr=shlex.split(cmd)
     evmNodePOpen=Utils.delayedCheckOutput(cmdArr, stdout=outFile, stderr=errFile)
 
     time.sleep(4.0) # allow time to sync trxs
 
-    # Launch eos-evm-rpc
-    rpcStdOutDir = dataDir + "/eos-evm-rpc.stdout"
-    rpcStdErrDir = dataDir + "/eos-evm-rpc.stderr"
+    # Launch evm-rpc
+    rpcStdOutDir = dataDir + "/evm-rpc.stdout"
+    rpcStdErrDir = dataDir + "/evm-rpc.stderr"
     outFile = open(rpcStdOutDir, "w")
     errFile = open(rpcStdErrDir, "w")
-    cmd = f"{eosEvmBuildRoot}/bin/eos-evm-rpc --eos-evm-node=127.0.0.1:8080 --http-port=0.0.0.0:8881 --chaindata={dataDir} --api-spec=eth,debug,net,trace"
+    cmd = f"{eosEvmBuildRoot}/bin/evm-rpc --evm-node=127.0.0.1:8080 --http-port=0.0.0.0:8881 --chaindata={dataDir} --api-spec=eth,debug,net,trace"
     Utils.Print(f"Launching: {cmd}")
     cmdArr=shlex.split(cmd)
     os.environ["WEB3_RPC_ENDPOINT"] = "http://127.0.0.1:8881/"
@@ -664,7 +664,7 @@ try:
 
     # ==== gas parameter before the fork ===
     # verify version 1
-    Utils.Print("Verify evm_version==1 from eos-evm-node")
+    Utils.Print("Verify evm_version==1 from evm-node")
     # Verify header.nonce == 1 (evmversion=1)
     evm_block = w3.eth.get_block('latest')
     Utils.Print("before fork, the latest evm block is:" + str(evm_block))
@@ -688,7 +688,7 @@ try:
             raise
         assert r == int(row['balance'],16), f"{row['eth_address']} {r} != {int(row['balance'],16)}"
 
-    Utils.Print("checking if any error in eos-evm-node")
+    Utils.Print("checking if any error in evm-node")
     foundErr = False
     stdErrFile = open(nodeStdErrDir, "r")
     lines = stdErrFile.readlines()
@@ -697,7 +697,7 @@ try:
             Utils.Print("  Found ERROR in EOS EVM NODE log: ", line)
             foundErr = True
 
-    Utils.Print("checking if any error in eos-evm-rpc")
+    Utils.Print("checking if any error in evm-rpc")
     stdErrFile = open(rpcStdErrDir, "r")
     lines = stdErrFile.readlines()
     for line in lines:
@@ -849,7 +849,7 @@ try:
     assert(row4_node1["balance"] == "0000000000000000000000000000000000000000000000024c91bd38333b1600")
     assert(row4["balance"] != row4_node1["balance"])
 
-    # verify eos-evm-node get the new gas parameter from the minor fork
+    # verify evm-node get the new gas parameter from the minor fork
     evm_block = w3.eth.get_block('latest')
     Utils.Print("in minor fork, the latest evm block is:" + str(evm_block))
     assert(evm_block["nonce"].hex() == "0000000000000001" or evm_block["nonce"].hex() == "0x0000000000000001")
@@ -861,8 +861,8 @@ try:
     assert(evm_block["consensusParameter"]["gasFeeParameters"]["gasTxcreate"] == 347238)
     assert(evm_block["consensusParameter"]["gasFeeParameters"]["gasTxnewaccount"] == 198831)
 
-    # Validate all balances are the same between node0(prodNode) and eos-evm-node
-    Utils.Print("Validate all balances are the same between node0(minor-fork) and eos-evm-node")
+    # Validate all balances are the same between node0(prodNode) and evm-node
+    Utils.Print("Validate all balances are the same between node0(minor-fork) and evm-node")
     rows=prodNode.getTable(evmAcc.name, evmAcc.name, "account")
     for row in rows['rows']:
         Utils.Print("0x{0} balance is {1} in leap".format(row['eth_address'], int(row['balance'],16)))
@@ -872,7 +872,7 @@ try:
         except:
             Utils.Print("ERROR - RPC endpoint not available - Exception thrown - Checking 0x{0} balance".format(row['eth_address']))
             raise
-        Utils.Print("0x{0} balance is {1} in eos-evm-rpc".format(row['eth_address'], r))
+        Utils.Print("0x{0} balance is {1} in evm-rpc".format(row['eth_address'], r))
         assert r == int(row['balance'],16), f"{row['eth_address']} {r} != {int(row['balance'],16)}"
 
     Print("Tracking the blocks from the divergence till there are 10*12 blocks on one chain and 10*12+1 on the other, from block %d to %d" % (killBlockNum, lastBlockNum))
@@ -977,8 +977,8 @@ try:
     assert(evm_block["consensusParameter"]["gasFeeParameters"]["gasTxcreate"] == 289062)
     assert(evm_block["consensusParameter"]["gasFeeParameters"]["gasTxnewaccount"] == 165519)
 
-    # Validate all balances are the same between node0(prodNode) and eos-evm-node
-    Utils.Print("Validate all balances are the same between node0 and eos-evm-node after fork resolved")
+    # Validate all balances are the same between node0(prodNode) and evm-node
+    Utils.Print("Validate all balances are the same between node0 and evm-node after fork resolved")
     time.sleep(1.0)
     rows=prodNode.getTable(evmAcc.name, evmAcc.name, "account")
     for row in rows['rows']:
@@ -989,7 +989,7 @@ try:
         except:
             Utils.Print("ERROR - RPC endpoint not available - Exception thrown - Checking 0x{0} balance".format(row['eth_address']))
             raise
-        Utils.Print("0x{0} balance is {1} in eos-evm-rpc".format(row['eth_address'], r))
+        Utils.Print("0x{0} balance is {1} in evm-rpc".format(row['eth_address'], r))
         assert r == int(row['balance'],16), f"{row['eth_address']} {r} != {int(row['balance'],16)}"
 
     # ensure all blocks from the lib before divergence till the current head are now in consensus

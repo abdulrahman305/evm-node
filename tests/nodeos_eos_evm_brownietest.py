@@ -54,11 +54,11 @@ from antelope_name import convert_name_to_value
 #
 # Example (Running with leap src build):
 #  cd ~/leap/build
-#  ~/eos-evm-node/build/tests/nodeos_eos_evm_test.py --eos-evm-contract-root ~/eos-evm/build --eos-evm-build-root ~/eos-evm-node/build --use-miner ~/eos-evm-miner --leave-running
+#  ~/evm-node/build/tests/nodeos_eos_evm_test.py --eos-evm-contract-root ~/eos-evm/build --eos-evm-build-root ~/evm-node/build --use-miner ~/eos-evm-miner --leave-running
 #
 # Example (Running with leap dev-install):
 #  ln -s /usr/share/leap_testing/tests/TestHarness /usr/lib/python3/dist-packages/TestHarness
-#  ~/eos-evm-node/build/tests/nodeos_eos_evm_test.py --eos-evm-contract-root ~/eos-evm/build --eos-evm-build-root ~/eos-evm-node/build --use-miner ~/eos-evm-miner --leave-running
+#  ~/evm-node/build/tests/nodeos_eos_evm_test.py --eos-evm-contract-root ~/eos-evm/build --eos-evm-build-root ~/evm-node/build --use-miner ~/eos-evm-miner --leave-running
 #
 #  Launches wallet at port: 9899
 #    Example: bin/cleos --wallet-url http://127.0.0.1:9899 ...
@@ -473,8 +473,8 @@ try:
     Utils.Print("Generated EVM json genesis file in: %s" % genesisJson)
     Utils.Print("")
     Utils.Print("You can now run:")
-    Utils.Print("  eos-evm-node --plugin=blockchain_plugin --ship-core-account=eosio.evm --ship-endpoint=127.0.0.1:8999 --genesis-json=%s --chain-data=/tmp/data --verbosity=5" % genesisJson)
-    Utils.Print("  eos-evm-rpc --eos-evm-node=127.0.0.1:8080 --http-port=0.0.0.0:8881 --chaindata=/tmp/data --api-spec=eth,debug,net,trace")
+    Utils.Print("  evm-node --plugin=blockchain_plugin --ship-core-account=eosio.evm --ship-endpoint=127.0.0.1:8999 --genesis-json=%s --chain-data=/tmp/data --verbosity=5" % genesisJson)
+    Utils.Print("  evm-rpc --evm-node=127.0.0.1:8080 --http-port=0.0.0.0:8881 --chaindata=/tmp/data --api-spec=eth,debug,net,trace")
     Utils.Print("")
 
     #
@@ -490,16 +490,16 @@ try:
     rows=prodNode.getTable(evmAcc.name, evmAcc.name, "balances")
     Utils.Print("\tBefore transfer table rows:", rows)
 
-    # Launch eos-evm-node
-    Utils.Print("===== laucnhing eos-evm-node =====")
+    # Launch evm-node
+    Utils.Print("===== laucnhing evm-node =====")
     dataDir = Utils.DataDir + "eos_evm"
-    nodeStdOutDir = dataDir + "/eos-evm-node.stdout"
-    nodeStdErrDir = dataDir + "/eos-evm-node.stderr"
+    nodeStdOutDir = dataDir + "/evm-node.stdout"
+    nodeStdErrDir = dataDir + "/evm-node.stderr"
     shutil.rmtree(dataDir, ignore_errors=True)
     os.makedirs(dataDir)
     outFile = open(nodeStdOutDir, "w")
     errFile = open(nodeStdErrDir, "w")
-    cmd = f"{eosEvmBuildRoot}/bin/eos-evm-node --plugin=blockchain_plugin --ship-core-account=eosio.evm --ship-endpoint=127.0.0.1:8999 --genesis-json={genesisJson} --verbosity=5 --nocolor=1 --chain-data={dataDir}"
+    cmd = f"{eosEvmBuildRoot}/bin/evm-node --plugin=blockchain_plugin --ship-core-account=eosio.evm --ship-endpoint=127.0.0.1:8999 --genesis-json={genesisJson} --verbosity=5 --nocolor=1 --chain-data={dataDir}"
     Utils.Print(f"Launching: {cmd}")
     cmdArr=shlex.split(cmd)
     evmNodePOpen=Utils.delayedCheckOutput(cmdArr, stdout=outFile, stderr=errFile)
@@ -525,13 +525,13 @@ try:
     # Transfer funds (now using version=1)
     nonProdNode.transferFunds(cluster.eosioAccount, evmAcc, "112.0000 EOS", "0xB106D2C286183FFC3D1F0C4A6f0753bB20B407c2", waitForTransBlock=True)
 
-    # Launch eos-evm-rpc
-    Utils.Print("===== laucnhing eos-evm-rpc =====")
-    rpcStdOutDir = dataDir + "/eos-evm-rpc.stdout"
-    rpcStdErrDir = dataDir + "/eos-evm-rpc.stderr"
+    # Launch evm-rpc
+    Utils.Print("===== laucnhing evm-rpc =====")
+    rpcStdOutDir = dataDir + "/evm-rpc.stdout"
+    rpcStdErrDir = dataDir + "/evm-rpc.stderr"
     outFile = open(rpcStdOutDir, "w")
     errFile = open(rpcStdErrDir, "w")
-    cmd = f"{eosEvmBuildRoot}/bin/eos-evm-rpc --eos-evm-node=127.0.0.1:8080 --http-port=0.0.0.0:8881 --chaindata={dataDir} --api-spec=eth,debug,net,trace"
+    cmd = f"{eosEvmBuildRoot}/bin/evm-rpc --evm-node=127.0.0.1:8080 --http-port=0.0.0.0:8881 --chaindata={dataDir} --api-spec=eth,debug,net,trace"
     Utils.Print(f"Launching: {cmd}")
     cmdArr=shlex.split(cmd)
     evmRPCPOpen=Utils.delayedCheckOutput(cmdArr, stdout=outFile, stderr=errFile)

@@ -29,11 +29,11 @@ Clients can also push Ethereum compatible transactions (aka EVM transactions) to
 ### checkout the source code:
 ```
 git clone https://github.com/VaultaFoundation/evm-node.git
-cd eos-evm-node
+cd evm-node
 git submodule update --init --recursive
 ```
 
-### compile eos-evm-node, eos-evm-rpc
+### compile evm-node, evm-rpc
 
 Prerequisites:
 - Ubuntu 22 or later or other compatible Linux
@@ -55,8 +55,8 @@ make -j8
 ```
 You'll get the list of binaries with other tools:
 ```
-bin/eos-evm-node
-bin/eos-evm-rpc
+bin/evm-node
+bin/evm-rpc
 ```
 
 Alternatively, to build with specific compiler:

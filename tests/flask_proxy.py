@@ -25,9 +25,9 @@ def default():
             #print("got resp from miner:" + str(resp))
             return resp
         else:
-            #print("send req to eos-evm-rpc:" + str(req))
+            #print("send req to evm-rpc:" + str(req))
             resp = requests.post(readEndpoint, json.dumps(req), headers={"Accept":"application/json","Content-Type":"application/json"}).json()
-            #print("got from eos-evm-rpc:" + str(resp))
+            #print("got from evm-rpc:" + str(resp))
             return resp
 
     request_data = request.get_json()
