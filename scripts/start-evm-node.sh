@@ -40,7 +40,7 @@ if [ ! -f eos-evm-genesis.json ]; then
   done
 fi
 
-echo "Launching EOS EVM Node"
+echo "Launching EVM Node"
 $EVM_NODE_ROOT/build/src/evm-node \
   --plugin=blockchain_plugin \
   --ship-endpoint=127.0.0.1:8999 \
@@ -55,7 +55,7 @@ $EVM_NODE_ROOT/build/src/evm-node \
 
 sleep 2
 
-echo "Launching EOS EVM Rpc"
+echo "Launching EVM Rpc"
 $EVM_NODE_ROOT/build/src/evm-rpc \
   --evm-node=127.0.0.1:8080 \
   --http-port=0.0.0.0:8881 \
@@ -67,7 +67,7 @@ $EVM_NODE_ROOT/build/src/evm-rpc \
 
 sleep 2
 
-echo "Launching EOS EVM WS proxy"
+echo "Launching EVM WS proxy"
 if [ ! -d "node_modules" ]; then
   cp $EVM_NODE_ROOT/peripherals/eos-evm-ws-proxy/package.json .
   npm install
