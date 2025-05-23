@@ -43,14 +43,14 @@ from antelope_name import convert_name_to_value
 ###############################################################
 # nodeos_eos_evm_test
 #
-# Set up a EOS EVM env and run simple tests.
+# Set up a EVM env and run simple tests.
 #
 # Need to install:
 #   web3      - pip install web3
 #
 # --use-miner path to eos-evm-miner. if specified then uses eos-evm-miner to get gas price.
-# --eos-evm-build-root should point to the root of EOS EVM build dir
-# --eos-evm-contract-root should point to root of EOS EVM contract build dir
+# --eos-evm-build-root should point to the root of EVM build dir
+# --eos-evm-contract-root should point to root of EVM contract build dir
 #
 # Example (Running with leap src build):
 #  cd ~/leap/build
@@ -81,10 +81,10 @@ def prefix_0x(hexstr):
         return hexstr
 
 appArgs=AppArgs()
-appArgs.add(flag="--eos-evm-contract-root", type=str, help="EOS EVM contract build dir", default=None)
-appArgs.add(flag="--eos-evm-build-root", type=str, help="EOS EVM build dir", default=None)
+appArgs.add(flag="--eos-evm-contract-root", type=str, help="EVM contract build dir", default=None)
+appArgs.add(flag="--eos-evm-build-root", type=str, help="EVM build dir", default=None)
 appArgs.add(flag="--genesis-json", type=str, help="File to save generated genesis json", default="eos-evm-genesis.json")
-appArgs.add(flag="--use-miner", type=str, help="EOS EVM miner to use to send trx to nodeos", default=None)
+appArgs.add(flag="--use-miner", type=str, help="EVM miner to use to send trx to nodeos", default=None)
 appArgs.add(flag="--miner-cmd", type=str, help="command line to start EVM miner", default="node dist/index.js")
 appArgs.add(flag="--flask-proxy-root", type=str, help="command line to start EVM miner", default=".")
 

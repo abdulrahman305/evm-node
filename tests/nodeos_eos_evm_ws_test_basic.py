@@ -38,14 +38,14 @@ from antelope_name import convert_name_to_value
 ###############################################################
 # nodeos_eos_evm_ws_test_basic
 #
-# Set up a EOS EVM env and run simple tests with websocket support
+# Set up a EVM env and run simple tests with websocket support
 #
 # Need to install:
 #   web3      - pip install web3
 #             - pip install otree
 #
-# --eos-evm-build-root should point to the root of EOS EVM build dir
-# --eos-evm-contract-root should point to root of EOS EVM contract build dir
+# --eos-evm-build-root should point to the root of EVM build dir
+# --eos-evm-contract-root should point to root of EVM contract build dir
 #
 #  cd build/tests
 # ./nodeos_eos_evm_ws_test_basic.py --eos-evm-contract-root ~/workspaces/TrustEVM/build --eos-evm-build-root ~/workspaces/evm-node/build -v
@@ -57,8 +57,8 @@ Print=Utils.Print
 errorExit=Utils.errorExit
 
 appArgs=AppArgs()
-appArgs.add(flag="--eos-evm-contract-root", type=str, help="EOS EVM contract build dir", default=None)
-appArgs.add(flag="--eos-evm-build-root", type=str, help="EOS EVM build dir", default=None)
+appArgs.add(flag="--eos-evm-contract-root", type=str, help="EVM contract build dir", default=None)
+appArgs.add(flag="--eos-evm-build-root", type=str, help="EVM build dir", default=None)
 appArgs.add(flag="--genesis-json", type=str, help="File to save generated genesis json", default="eos-evm-genesis.json")
 
 args=TestHelper.parse_args({"--keep-logs","--dump-error-details","-v","--leave-running" }, applicationSpecificArgs=appArgs)
@@ -618,7 +618,7 @@ try:
     lines = stdErrFile.readlines()
     for line in lines:
         if line.find("ERROR") != -1 or line.find("CRIT") != -1:
-            Utils.Print("  Found ERROR in EOS EVM NODE log: ", line)
+            Utils.Print("  Found ERROR in EVM NODE log: ", line)
             foundErr = True
 
     Utils.Print("checking if any error in evm-rpc")
@@ -626,7 +626,7 @@ try:
     lines = stdErrFile.readlines()
     for line in lines:
         if line.find("ERROR") != -1 or line.find("CRIT") != -1:
-            Utils.Print("  Found ERROR in EOS EVM RPC log: ", line)
+            Utils.Print("  Found ERROR in EVM RPC log: ", line)
             foundErr = True
 
     Utils.Print("starting websocket proxy")

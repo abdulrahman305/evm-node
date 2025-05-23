@@ -30,7 +30,7 @@ from antelope_name import convert_name_to_value
 ###############################################################
 # nodeos_eos_evm_server
 #
-# Set up a EOS EVM env
+# Set up a EVM env
 #
 # This test sets up 2 producing nodes and one "bridge" node using test_control_api_plugin.
 #   One producing node has 3 of the elected producers and the other has 1 of the elected producers.
@@ -40,7 +40,7 @@ from antelope_name import convert_name_to_value
 #   The bridge node has the test_control_api_plugin, which exposes a restful interface that the test script uses to kill
 #       the "bridge" node when /fork endpoint called.
 #
-# --eos-evm-contract-root should point to root of EOS EVM Contract build dir
+# --eos-evm-contract-root should point to root of EVM Contract build dir
 # --genesis-json file to save generated EVM genesis json
 # --read-endpoint evm-rpc endpoint (read endpoint)
 #
@@ -64,11 +64,11 @@ Print=Utils.Print
 errorExit=Utils.errorExit
 
 appArgs=AppArgs()
-appArgs.add(flag="--eos-evm-contract-root", type=str, help="EOS EVM Contract build dir", default=None)
-appArgs.add(flag="--eos-evm-bridge-contracts-root", type=str, help="EOS EVM Bridge contracts build dir", default=None)
+appArgs.add(flag="--eos-evm-contract-root", type=str, help="EVM Contract build dir", default=None)
+appArgs.add(flag="--eos-evm-bridge-contracts-root", type=str, help="EVM Bridge contracts build dir", default=None)
 appArgs.add(flag="--genesis-json", type=str, help="File to save generated genesis json", default="eos-evm-genesis.json")
 appArgs.add(flag="--read-endpoint", type=str, help="EVM read endpoint (evm-rpc)", default="http://localhost:8881")
-appArgs.add(flag="--use-eos-vm-oc", type=bool, help="EOS EVM Contract build dir", default=False)
+appArgs.add(flag="--use-eos-vm-oc", type=bool, help="EVM Contract build dir", default=False)
 
 args=TestHelper.parse_args({"--keep-logs","--dump-error-details","-v","--leave-running" }, applicationSpecificArgs=appArgs)
 debug=args.v
