@@ -63,7 +63,7 @@ _use --use-eos-vm-oc=1 when launching **nodeos_eos_evm_server.py** if you want t
 cd ~/evmperf/leap/build/tests
 source venv/bin/activate
 cd ..
-./tests/nodeos_eos_evm_server.py --leave-running --eos-evm-contract-root ~/evmperf/eos-evm/contract/build
+./tests/nodeos_eos_evm_server.py --leave-running --evm-contract-root ~/evmperf/eos-evm/contract/build
 ```
 
 (_wait until nodeos_eos_evm_server start listening at localhost:5000_)

@@ -40,13 +40,13 @@ from antelope_name import convert_name_to_value
 #   The bridge node has the test_control_api_plugin, which exposes a restful interface that the test script uses to kill
 #       the "bridge" node when /fork endpoint called.
 #
-# --eos-evm-contract-root should point to root of EVM Contract build dir
+# --evm-contract-root should point to root of EVM Contract build dir
 # --genesis-json file to save generated EVM genesis json
 # --read-endpoint evm-rpc endpoint (read endpoint)
 #
 # Example:
 #  cd ~/ext/leap/build
-#  ~/ext/eos-evm/tests/leap/nodeos_eos_evm_server.py --eos-evm-contract-root ~/ext/eos-evm/contract/build --leave-running
+#  ~/ext/eos-evm/tests/leap/nodeos_eos_evm_server.py --evm-contract-root ~/ext/eos-evm/contract/build --leave-running
 #
 #  Launches wallet at port: 9899
 #    Example: bin/cleos --wallet-url http://127.0.0.1:9899 ...
@@ -64,7 +64,7 @@ Print=Utils.Print
 errorExit=Utils.errorExit
 
 appArgs=AppArgs()
-appArgs.add(flag="--eos-evm-contract-root", type=str, help="EVM Contract build dir", default=None)
+appArgs.add(flag="--evm-contract-root", type=str, help="EVM Contract build dir", default=None)
 appArgs.add(flag="--eos-evm-bridge-contracts-root", type=str, help="EVM Bridge contracts build dir", default=None)
 appArgs.add(flag="--genesis-json", type=str, help="File to save generated genesis json", default="eos-evm-genesis.json")
 appArgs.add(flag="--read-endpoint", type=str, help="EVM read endpoint (evm-rpc)", default="http://localhost:8881")
@@ -80,7 +80,7 @@ eosEvmBridgeContractsRoot=args.eos_evm_bridge_contracts_root
 gensisJson=args.genesis_json
 readEndpoint=args.read_endpoint
 useEosVmOC=args.use_eos_vm_oc
-assert eosEvmContractRoot is not None, "--eos-evm-contract-root is required"
+assert eosEvmContractRoot is not None, "--evm-contract-root is required"
 
 totalProducerNodes=2
 totalNonProducerNodes=1

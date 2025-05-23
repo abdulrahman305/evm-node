@@ -45,15 +45,15 @@ from antelope_name import convert_name_to_value
 #
 # --use-miner path to evm-miner. if specified then uses evm-miner to get gas price.
 # --eos-evm-build-root should point to the root of EVM build dir
-# --eos-evm-contract-root should point to root of EVM contract build dir
+# --evm-contract-root should point to root of EVM contract build dir
 #
 # Example (Running with leap src build):
 #  cd ~/leap/build
-#  ~/evm-node/build/tests/nodeos_eos_evm_test.py --eos-evm-contract-root ~/eos-evm/build --eos-evm-build-root ~/evm-node/build --use-miner ~/evm-miner --leave-running
+#  ~/evm-node/build/tests/nodeos_eos_evm_test.py --evm-contract-root ~/eos-evm/build --eos-evm-build-root ~/evm-node/build --use-miner ~/evm-miner --leave-running
 #
 # Example (Running with leap dev-install):
 #  ln -s /usr/share/leap_testing/tests/TestHarness /usr/lib/python3/dist-packages/TestHarness
-#  ~/evm-node/build/tests/nodeos_eos_evm_test.py --eos-evm-contract-root ~/eos-evm/build --eos-evm-build-root ~/evm-node/build --use-miner ~/evm-miner --leave-running
+#  ~/evm-node/build/tests/nodeos_eos_evm_test.py --evm-contract-root ~/eos-evm/build --eos-evm-build-root ~/evm-node/build --use-miner ~/evm-miner --leave-running
 #
 #  Launches wallet at port: 9899
 #    Example: bin/cleos --wallet-url http://127.0.0.1:9899 ...
@@ -76,7 +76,7 @@ def prefix_0x(hexstr):
         return hexstr
 
 appArgs=AppArgs()
-appArgs.add(flag="--eos-evm-contract-root", type=str, help="EVM contract build dir", default=None)
+appArgs.add(flag="--evm-contract-root", type=str, help="EVM contract build dir", default=None)
 appArgs.add(flag="--eos-evm-build-root", type=str, help="EVM build dir", default=None)
 appArgs.add(flag="--genesis-json", type=str, help="File to save generated genesis json", default="eos-evm-genesis.json")
 appArgs.add(flag="--use-miner", type=str, help="EVM miner to use to send trx to nodeos", default=None)
@@ -90,7 +90,7 @@ eosEvmBuildRoot=args.eos_evm_build_root
 genesisJson=args.genesis_json
 useMiner=args.use_miner
 
-assert eosEvmContractRoot is not None, "--eos-evm-contract-root is required"
+assert eosEvmContractRoot is not None, "--evm-contract-root is required"
 assert eosEvmBuildRoot is not None, "--eos-evm-build-root is required"
 
 szabo = 1000000000000

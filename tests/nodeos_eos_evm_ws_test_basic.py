@@ -45,10 +45,10 @@ from antelope_name import convert_name_to_value
 #             - pip install otree
 #
 # --eos-evm-build-root should point to the root of EVM build dir
-# --eos-evm-contract-root should point to root of EVM contract build dir
+# --evm-contract-root should point to root of EVM contract build dir
 #
 #  cd build/tests
-# ./nodeos_eos_evm_ws_test_basic.py --eos-evm-contract-root ~/workspaces/TrustEVM/build --eos-evm-build-root ~/workspaces/evm-node/build -v
+# ./nodeos_eos_evm_ws_test_basic.py --evm-contract-root ~/workspaces/TrustEVM/build --eos-evm-build-root ~/workspaces/evm-node/build -v
 #
 #
 ###############################################################
@@ -57,7 +57,7 @@ Print=Utils.Print
 errorExit=Utils.errorExit
 
 appArgs=AppArgs()
-appArgs.add(flag="--eos-evm-contract-root", type=str, help="EVM contract build dir", default=None)
+appArgs.add(flag="--evm-contract-root", type=str, help="EVM contract build dir", default=None)
 appArgs.add(flag="--eos-evm-build-root", type=str, help="EVM build dir", default=None)
 appArgs.add(flag="--genesis-json", type=str, help="File to save generated genesis json", default="eos-evm-genesis.json")
 
@@ -70,7 +70,7 @@ eosEvmContractRoot=args.eos_evm_contract_root
 eosEvmBuildRoot=args.eos_evm_build_root
 genesisJson=args.genesis_json
 
-assert eosEvmContractRoot is not None, "--eos-evm-contract-root is required"
+assert eosEvmContractRoot is not None, "--evm-contract-root is required"
 assert eosEvmBuildRoot is not None, "--eos-evm-build-root is required"
 
 szabo = 1000000000000
