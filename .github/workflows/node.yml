@@ -1,4 +1,4 @@
-name: EOS EVM Node CI
+name: EVM Node CI
 
 on:
   push:
@@ -92,7 +92,7 @@ jobs:
           file: ${{fromJSON(needs.d.outputs.p)[matrix.platform].dockerfile}}
 
   build:
-    name: EOS EVM Node Build
+    name: EVM Node Build
     needs: [d, build-platforms]
     if: always() && needs.d.result == 'success' && (needs.build-platforms.result == 'success' ||  needs.build-platforms.result == 'skipped')
     strategy:
@@ -117,7 +117,7 @@ jobs:
           submodules: 'recursive'
           token: ${{ steps.auth.outputs.token }}
 
-      - name: Build EOS EVM Node
+      - name: Build EVM Node
         run: .github/workflows/build-node.sh
         env:
           CC: gcc-11
@@ -172,7 +172,7 @@ jobs:
           fi
 
   integration-test:
-    name: EOS EVM Integration Tests
+    name: EVM Integration Tests
     needs: [d, build, versions]
     if: always() && needs.d.result == 'success' && needs.build.result == 'success' && needs.versions.result == 'success'
     strategy:
@@ -244,7 +244,7 @@ jobs:
       - name: Link Spring TestHarness Module
         run: ln -s /usr/share/spring_testing/tests/TestHarness /usr/lib/python3/dist-packages/TestHarness
 
-      - name: Download EOS EVM Contract
+      - name: Download EVM Contract
         uses: AntelopeIO/asset-artifact-download-action@v3
         with:
           owner: eosnetworkfoundation
@@ -255,7 +255,7 @@ jobs:
           artifact-name: contract.test-actions-off.tar.gz
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract EOS EVM Contract
+      - name: Extract EVM Contract
         id: evm-contract
         run: |
           mkdir contract
@@ -279,12 +279,12 @@ jobs:
           path: eos-evm-miner
           ref: '${{needs.versions.outputs.eos-evm-miner-target}}'
 
-      - name: Download EOS EVM Node builddir
+      - name: Download EVM Node builddir
         uses: actions/download-artifact@v4
         with:
           name: build.tar.gz
 
-      - name: Extract EOS EVM Node builddir
+      - name: Extract EVM Node builddir
         id: evm-node-build
         run: |
           mkdir evm-node
