@@ -92,7 +92,7 @@ jobs:
           file: ${{fromJSON(needs.d.outputs.p)[matrix.platform].dockerfile}}
 
   build:
-    name: EVM Node Build
+    name: EOS EVM Node Build
     needs: [d, build-platforms]
     if: always() && needs.d.result == 'success' && (needs.build-platforms.result == 'success' ||  needs.build-platforms.result == 'skipped')
     strategy:
@@ -172,7 +172,7 @@ jobs:
           fi
 
   integration-test:
-    name: EVM Integration Tests
+    name: EOS EVM Integration Tests
     needs: [d, build, versions]
     if: always() && needs.d.result == 'success' && needs.build.result == 'success' && needs.versions.result == 'success'
     strategy:
