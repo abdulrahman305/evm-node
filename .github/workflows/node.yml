@@ -319,7 +319,7 @@ jobs:
         run: |
           mkdir test_run_root
           cd test_run_root
-          ${{ steps.evm-node-build.outputs.EVM_NODE_BUILD }}/tests/nodeos_eos_evm_test.py -v --evm-contract-root ${{ steps.evm-contract.outputs.EVM_CONTRACT }} --eos-evm-build-root ${{ steps.evm-node-build.outputs.EVM_NODE_BUILD }} --use-miner ${{ steps.evm-miner-build.outputs.EVM_MINER_ROOT }}
+          ${{ steps.evm-node-build.outputs.EVM_NODE_BUILD }}/tests/nodeos_eos_evm_test.py -v --evm-contract-root ${{ steps.evm-contract.outputs.EVM_CONTRACT }} --evm-build-root ${{ steps.evm-node-build.outputs.EVM_NODE_BUILD }} --use-miner ${{ steps.evm-miner-build.outputs.EVM_MINER_ROOT }}
           
       - name: Test Leap Integration - with Brownie Framework
         run: |
@@ -333,13 +333,13 @@ jobs:
           pip install flask
           pip install flask-cors --upgrade
           brownie networks add Ethereum localhost5000 host=http://127.0.0.1:5000 chainid=15555
-          ${{ steps.evm-node-build.outputs.EVM_NODE_BUILD }}/tests/nodeos_eos_evm_brownietest.py -v --evm-contract-root ${{ steps.evm-contract.outputs.EVM_CONTRACT }} --eos-evm-build-root ${{ steps.evm-node-build.outputs.EVM_NODE_BUILD }} --use-miner ${{ steps.evm-miner-build.outputs.EVM_MINER_ROOT }} --flask-proxy-root ${{ steps.evm-node-build.outputs.EVM_NODE_BUILD }}/tests/
+          ${{ steps.evm-node-build.outputs.EVM_NODE_BUILD }}/tests/nodeos_eos_evm_brownietest.py -v --evm-contract-root ${{ steps.evm-contract.outputs.EVM_CONTRACT }} --evm-build-root ${{ steps.evm-node-build.outputs.EVM_NODE_BUILD }} --use-miner ${{ steps.evm-miner-build.outputs.EVM_MINER_ROOT }} --flask-proxy-root ${{ steps.evm-node-build.outputs.EVM_NODE_BUILD }}/tests/
           
       - name: Test Leap Integration - different gas token
         run: |
           mkdir -p test_run_root
           cd test_run_root
-          ${{ steps.evm-node-build.outputs.EVM_NODE_BUILD }}/tests/nodeos_eos_evm_different_token_test.py -v --evm-contract-root ${{ steps.evm-contract.outputs.EVM_CONTRACT }} --eos-evm-build-root ${{ steps.evm-node-build.outputs.EVM_NODE_BUILD }} --use-miner ${{ steps.evm-miner-build.outputs.EVM_MINER_ROOT }}
+          ${{ steps.evm-node-build.outputs.EVM_NODE_BUILD }}/tests/nodeos_eos_evm_different_token_test.py -v --evm-contract-root ${{ steps.evm-contract.outputs.EVM_CONTRACT }} --evm-build-root ${{ steps.evm-node-build.outputs.EVM_NODE_BUILD }} --use-miner ${{ steps.evm-miner-build.outputs.EVM_MINER_ROOT }}
 
       - name: Test Web-Socket Integration
         run: |
@@ -365,7 +365,7 @@ jobs:
           npm install web3
           npm install collections
           popd
-          ${{ steps.evm-node-build.outputs.EVM_NODE_BUILD }}/tests/nodeos_eos_evm_ws_test_basic.py -v --evm-contract-root ${{ steps.evm-contract.outputs.EVM_CONTRACT }} --eos-evm-build-root ${{ steps.evm-node-build.outputs.EVM_NODE_BUILD }}
+          ${{ steps.evm-node-build.outputs.EVM_NODE_BUILD }}/tests/nodeos_eos_evm_ws_test_basic.py -v --evm-contract-root ${{ steps.evm-contract.outputs.EVM_CONTRACT }} --evm-build-root ${{ steps.evm-node-build.outputs.EVM_NODE_BUILD }}
 
       - name: Test Web-Socket Fork Handling
         run: |
@@ -391,7 +391,7 @@ jobs:
           npm install web3
           npm install collections
           popd
-          ${{ steps.evm-node-build.outputs.EVM_NODE_BUILD }}/tests/nodeos_eos_evm_ws_test_fork.py -v --evm-contract-root ${{ steps.evm-contract.outputs.EVM_CONTRACT }} --eos-evm-build-root ${{ steps.evm-node-build.outputs.EVM_NODE_BUILD }}
+          ${{ steps.evm-node-build.outputs.EVM_NODE_BUILD }}/tests/nodeos_eos_evm_ws_test_fork.py -v --evm-contract-root ${{ steps.evm-contract.outputs.EVM_CONTRACT }} --evm-build-root ${{ steps.evm-node-build.outputs.EVM_NODE_BUILD }}
 
       - name: Test Gas Parameter Fork Handling
         run: |
@@ -417,7 +417,7 @@ jobs:
           npm install web3
           npm install collections
           popd
-          ${{ steps.evm-node-build.outputs.EVM_NODE_BUILD }}/tests/nodeos_eos_evm_gasparam_fork_test.py -v --evm-contract-root ${{ steps.evm-contract.outputs.EVM_CONTRACT }} --eos-evm-build-root ${{ steps.evm-node-build.outputs.EVM_NODE_BUILD }}
+          ${{ steps.evm-node-build.outputs.EVM_NODE_BUILD }}/tests/nodeos_eos_evm_gasparam_fork_test.py -v --evm-contract-root ${{ steps.evm-contract.outputs.EVM_CONTRACT }} --evm-build-root ${{ steps.evm-node-build.outputs.EVM_NODE_BUILD }}
           
       - name: Prepare Logs
         if: failure()

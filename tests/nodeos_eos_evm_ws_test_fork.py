@@ -45,11 +45,11 @@ from antelope_name import convert_name_to_value
 #   web3      - pip install web3
 #             - pip install otree
 #
-# --eos-evm-build-root should point to the root of EVM build dir
+# --evm-build-root should point to the root of EVM build dir
 # --evm-contract-root should point to root of EVM contract build dir
 #
 #  cd build/tests
-# ./nodeos_eos_evm_ws_test_fork.py --evm-contract-root ~/workspaces/TrustEVM/build --eos-evm-build-root ~/workspaces/evm-node/build -v
+# ./nodeos_eos_evm_ws_test_fork.py --evm-contract-root ~/workspaces/TrustEVM/build --evm-build-root ~/workspaces/evm-node/build -v
 #
 #
 ###############################################################
@@ -153,7 +153,7 @@ def getMinHeadAndLib(prodNodes):
 
 appArgs=AppArgs()
 appArgs.add(flag="--evm-contract-root", type=str, help="EVM contract build dir", default=None)
-appArgs.add(flag="--eos-evm-build-root", type=str, help="EVM build dir", default=None)
+appArgs.add(flag="--evm-build-root", type=str, help="EVM build dir", default=None)
 appArgs.add(flag="--genesis-json", type=str, help="File to save generated genesis json", default="eos-evm-genesis.json")
 
 args=TestHelper.parse_args({"--keep-logs","--dump-error-details","-v","--leave-running" }, applicationSpecificArgs=appArgs)
@@ -161,8 +161,8 @@ debug=args.v
 killEosInstances= not args.leave_running
 dumpErrorDetails=args.dump_error_details
 keepLogs=args.keep_logs
-eosEvmContractRoot=args.eos_evm_contract_root
-eosEvmBuildRoot=args.eos_evm_build_root
+eosEvmContractRoot=args.evm_contract_root
+eosEvmBuildRoot=args.evm_build_root
 genesisJson=args.genesis_json
 
 totalProducerNodes=2
@@ -172,7 +172,7 @@ maxActiveProducers=3
 totalProducers=maxActiveProducers
 
 assert eosEvmContractRoot is not None, "--evm-contract-root is required"
-assert eosEvmBuildRoot is not None, "--eos-evm-build-root is required"
+assert eosEvmBuildRoot is not None, "--evm-build-root is required"
 
 szabo = 1000000000000
 seed=1
