@@ -37,4 +37,4 @@ if [ ! -d "venv" ]; then
 fi
 
 CORE_SYMBOL_NAME=$CORE_SYMBOL_NAME ./venv/bin/python3 $EVM_NODE_ROOT/tests/nodeos_eos_evm_server.py --evm-contract-root $EVM_CONTRACT_ROOT/build --eos-evm-bridge-contracts-root $EVM_BRIDGE_ROOT/build
-mv eos-evm-genesis.json eos-evm-genesis.json.last &> /dev/null
+mv evm-genesis.json evm-genesis.json.last &> /dev/null

@@ -59,7 +59,7 @@ errorExit=Utils.errorExit
 appArgs=AppArgs()
 appArgs.add(flag="--evm-contract-root", type=str, help="EVM contract build dir", default=None)
 appArgs.add(flag="--evm-build-root", type=str, help="EVM build dir", default=None)
-appArgs.add(flag="--genesis-json", type=str, help="File to save generated genesis json", default="eos-evm-genesis.json")
+appArgs.add(flag="--genesis-json", type=str, help="File to save generated genesis json", default="evm-genesis.json")
 
 args=TestHelper.parse_args({"--keep-logs","--dump-error-details","-v","--leave-running" }, applicationSpecificArgs=appArgs)
 debug=args.v

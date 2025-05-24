@@ -83,7 +83,7 @@ def prefix_0x(hexstr):
 appArgs=AppArgs()
 appArgs.add(flag="--evm-contract-root", type=str, help="EVM contract build dir", default=None)
 appArgs.add(flag="--evm-build-root", type=str, help="EVM build dir", default=None)
-appArgs.add(flag="--genesis-json", type=str, help="File to save generated genesis json", default="eos-evm-genesis.json")
+appArgs.add(flag="--genesis-json", type=str, help="File to save generated genesis json", default="evm-genesis.json")
 appArgs.add(flag="--use-miner", type=str, help="EVM miner to use to send trx to nodeos", default=None)
 appArgs.add(flag="--miner-cmd", type=str, help="command line to start EVM miner", default="node dist/index.js")
 appArgs.add(flag="--flask-proxy-root", type=str, help="command line to start EVM miner", default=".")

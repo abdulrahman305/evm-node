@@ -33,9 +33,9 @@ if [ ! -f $EVM_NODE_ROOT/peripherals/eos-evm-ws-proxy/main.js ]; then
   exit 1
 fi
 
-if [ ! -f eos-evm-genesis.json ]; then
-  echo "Waiting for eos-evm-genesis.json ..."
-  while [ ! -f eos-evm-genesis.json ]; do
+if [ ! -f evm-genesis.json ]; then
+  echo "Waiting for evm-genesis.json ..."
+  while [ ! -f evm-genesis.json ]; do
     sleep 1
   done
 fi
@@ -44,7 +44,7 @@ echo "Launching EVM Node"
 $EVM_NODE_ROOT/build/src/evm-node \
   --plugin=blockchain_plugin \
   --ship-endpoint=127.0.0.1:8999 \
-  --genesis-json=eos-evm-genesis.json \
+  --genesis-json=evm-genesis.json \
   --ship-core-account=eosio.evm \
   --chain-data=data-evm-node \
   --ship-max-retry=1000000 \

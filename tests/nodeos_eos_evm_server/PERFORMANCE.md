@@ -72,7 +72,7 @@ cd ..
 ```
 cd ~/evmperf/eos-evm/build/bin
 rm -rf chaindata etl-temp config-dir
-./evm-node --plugin=blockchain_plugin --ship-endpoint=127.0.0.1:8999 --genesis-json=$HOME/evmperf/leap/build/eos-evm-genesis.json --verbosity=4
+./evm-node --plugin=blockchain_plugin --ship-endpoint=127.0.0.1:8999 --genesis-json=$HOME/evmperf/leap/build/evm-genesis.json --verbosity=4
 ```
 
 ### Launch evm-rpc

@@ -66,7 +66,7 @@ errorExit=Utils.errorExit
 appArgs=AppArgs()
 appArgs.add(flag="--evm-contract-root", type=str, help="EVM Contract build dir", default=None)
 appArgs.add(flag="--eos-evm-bridge-contracts-root", type=str, help="EVM Bridge contracts build dir", default=None)
-appArgs.add(flag="--genesis-json", type=str, help="File to save generated genesis json", default="eos-evm-genesis.json")
+appArgs.add(flag="--genesis-json", type=str, help="File to save generated genesis json", default="evm-genesis.json")
 appArgs.add(flag="--read-endpoint", type=str, help="EVM read endpoint (evm-rpc)", default="http://localhost:8881")
 appArgs.add(flag="--use-eos-vm-oc", type=bool, help="EVM Contract build dir", default=False)
 
