@@ -118,7 +118,7 @@ try:
 
     Print("Stand up cluster")
     if cluster.launch(topo="bridge", pnodes=totalProducerNodes,
-                      totalNodes=totalNodes, totalProducers=totalProducers,
+                      totalNodes=totalNodes, totalProducers=totalProducers,activateIF=True,
                       extraNodeosArgs=extraNodeosArgs, specificExtraNodeosArgs=specificExtraNodeosArgs) is False:
         Utils.cmdError("launcher")
         Utils.errorExit("Failed to stand up eos cluster.")

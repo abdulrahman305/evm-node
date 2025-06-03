@@ -320,10 +320,10 @@ try:
 
     specificExtraNodeosArgs[2]="--plugin eosio::test_control_api_plugin"
 
-    extraNodeosArgs="--contracts-console"
+    extraNodeosArgs="--contracts-console --production-pause-vote-timeout-ms 0"
 
     Print("Stand up cluster")
-    if cluster.launch(prodCount=2, pnodes=2, topo="bridge", totalNodes=3, extraNodeosArgs=extraNodeosArgs, totalProducers=3, specificExtraNodeosArgs=specificExtraNodeosArgs,delay=5) is False:
+    if cluster.launch(prodCount=2, pnodes=2, topo="bridge", totalNodes=3, extraNodeosArgs=extraNodeosArgs, totalProducers=3, specificExtraNodeosArgs=specificExtraNodeosArgs,activateIF=True,delay=5) is False:
         errorExit("Failed to stand up eos cluster.")
 
     Print ("Wait for Cluster stabilization")
