@@ -36,10 +36,9 @@ from TestHarness.testUtils import unhandledEnumType
 from antelope_name import convert_name_to_value
 
 ###############################################################
-# nodeos_eos_evm_ws_test_fork
+# nodeos_evm_ws_test_basic
 #
-# Set up a EVM env and run leap fork tests with websocket support
-# This test is based on both nodeos_eos_evm_ws_test_basic & nodeos_short_fork_take_over_test
+# Set up a EVM env and run simple tests with websocket support
 #
 # Need to install:
 #   web3      - pip install web3
@@ -49,107 +48,13 @@ from antelope_name import convert_name_to_value
 # --evm-contract-root should point to root of EVM contract build dir
 #
 #  cd build/tests
-# ./nodeos_eos_evm_ws_test_fork.py --evm-contract-root ~/workspaces/TrustEVM/build --evm-build-root ~/workspaces/evm-node/build -v
+# ./nodeos_evm_ws_test_basic.py --evm-contract-root ~/workspaces/TrustEVM/build --evm-build-root ~/workspaces/evm-node/build -v
 #
 #
 ###############################################################
 
 Print=Utils.Print
 errorExit=Utils.errorExit
-
-def get_raw_transaction(signed_trx):
-    if hasattr(signed_trx, 'raw_transaction'):
-        return signed_trx.raw_transaction
-    else:
-        return signed_trx.rawTransaction
-
-def analyzeBPs(bps0, bps1, expectDivergence):
-    start=0
-    index=None
-    length=len(bps0)
-    firstDivergence=None
-    errorInDivergence=False
-    analysysPass=0
-    bpsStr=None
-    bpsStr0=None
-    bpsStr1=None
-    while start < length:
-        analysysPass+=1
-        bpsStr=None
-        for i in range(start,length):
-            bp0=bps0[i]
-            bp1=bps1[i]
-            if bpsStr is None:
-                bpsStr=""
-            else:
-                bpsStr+=", "
-            blockNum0=bp0["blockNum"]
-            prod0=bp0["prod"]
-            blockNum1=bp1["blockNum"]
-            prod1=bp1["prod"]
-            numDiff=True if blockNum0!=blockNum1 else False
-            prodDiff=True if prod0!=prod1 else False
-            if numDiff or prodDiff:
-                index=i
-                if firstDivergence is None:
-                    firstDivergence=min(blockNum0, blockNum1)
-                if not expectDivergence:
-                    errorInDivergence=True
-                break
-            bpsStr+=str(blockNum0)+"->"+prod0
-
-        if index is None:
-            if expectDivergence:
-                errorInDivergence=True
-                break
-            return None
-
-        bpsStr0=None
-        bpsStr2=None
-        start=length
-        for i in range(index,length):
-            if bpsStr0 is None:
-                bpsStr0=""
-                bpsStr1=""
-            else:
-                bpsStr0+=", "
-                bpsStr1+=", "
-            bp0=bps0[i]
-            bp1=bps1[i]
-            blockNum0=bp0["blockNum"]
-            prod0=bp0["prod"]
-            blockNum1=bp1["blockNum"]
-            prod1=bp1["prod"]
-            numDiff="*" if blockNum0!=blockNum1 else ""
-            prodDiff="*" if prod0!=prod1 else ""
-            if not numDiff and not prodDiff:
-                start=i
-                index=None
-                if expectDivergence:
-                    errorInDivergence=True
-                break
-            bpsStr0+=str(blockNum0)+numDiff+"->"+prod0+prodDiff
-            bpsStr1+=str(blockNum1)+numDiff+"->"+prod1+prodDiff
-        if errorInDivergence:
-            break
-
-    if errorInDivergence:
-        msg="Failed analyzing block producers - "
-        if expectDivergence:
-            msg+="nodes do not indicate different block producers for the same blocks, but they are expected to diverge at some point."
-        else:
-            msg+="did not expect nodes to indicate different block producers for the same blocks."
-        msg+="\n  Matching Blocks= %s \n  Diverging branch node0= %s \n  Diverging branch node1= %s" % (bpsStr,bpsStr0,bpsStr1)
-        Utils.errorExit(msg)
-
-    return firstDivergence
-
-def getMinHeadAndLib(prodNodes):
-    info0=prodNodes[0].getInfo(exitOnError=True)
-    info1=prodNodes[1].getInfo(exitOnError=True)
-    headBlockNum=min(int(info0["head_block_num"]),int(info1["head_block_num"]))
-    libNum=min(int(info0["last_irreversible_block_num"]), int(info1["last_irreversible_block_num"]))
-    return (headBlockNum, libNum)
 
 appArgs=AppArgs()
 appArgs.add(flag="--evm-contract-root", type=str, help="EVM contract build dir", default=None)
@@ -165,12 +70,6 @@ eosEvmContractRoot=args.evm_contract_root
 eosEvmBuildRoot=args.evm_build_root
 genesisJson=args.genesis_json
 
-totalProducerNodes=2
-totalNonProducerNodes=1
-totalNodes=totalProducerNodes+totalNonProducerNodes
-maxActiveProducers=3
-totalProducers=maxActiveProducers
-
 assert eosEvmContractRoot is not None, "--evm-contract-root is required"
 assert eosEvmBuildRoot is not None, "--evm-build-root is required"
 
@@ -183,10 +82,18 @@ random.seed(seed) # Use a fixed seed for repeatability.
 cluster=Cluster(keepRunning=args.leave_running, keepLogs=args.keep_logs)
 walletMgr=WalletMgr(True)
 
+pnodes=1
+total_nodes=pnodes + 2
 evmNodePOpen = None
 evmRPCPOpen = None
 eosEvmMinerPOpen = None
 wsproxy = None
+
+def get_raw_transaction(signed_trx):
+    if hasattr(signed_trx, 'raw_transaction'):
+        return signed_trx.raw_transaction
+    else:
+        return signed_trx.rawTransaction
 
 def interact_with_storage_contract(dest, nonce):
     for i in range(1, 5): # execute a few
@@ -315,51 +222,23 @@ try:
     cluster.setWalletMgr(walletMgr)
 
     specificExtraNodeosArgs={}
-    shipNodeNum = 0
+    shipNodeNum = total_nodes - 1
     specificExtraNodeosArgs[shipNodeNum]="--plugin eosio::state_history_plugin --state-history-endpoint 127.0.0.1:8999 --trace-history --chain-state-history --disable-replay-opts  "
-
-    specificExtraNodeosArgs[2]="--plugin eosio::test_control_api_plugin"
 
     extraNodeosArgs="--contracts-console"
 
     Print("Stand up cluster")
-    if cluster.launch(prodCount=2, pnodes=2, topo="bridge", totalNodes=3, extraNodeosArgs=extraNodeosArgs, totalProducers=3, specificExtraNodeosArgs=specificExtraNodeosArgs,delay=5) is False:
+    if cluster.launch(pnodes=pnodes, totalNodes=total_nodes, extraNodeosArgs=extraNodeosArgs, specificExtraNodeosArgs=specificExtraNodeosArgs, delay=5) is False:
         errorExit("Failed to stand up eos cluster.")
 
     Print ("Wait for Cluster stabilization")
     # wait for cluster to start producing blocks
     if not cluster.waitOnClusterBlockNumSync(3):
         errorExit("Cluster never stabilized")
-    Print("Cluster stabilized")
+    Print ("Cluster stabilized")
 
-    # ***   identify each node (producers and non-producing node)   ***
-    Print("Identify each node (producers and non-producing node)")
-    nonProdNode=None
-    prodNodes=[]
-    producers=[]
-    for i in range(0, 3):
-        node=cluster.getNode(i)
-        node.producers=Cluster.parseProducers(i)
-        numProducers=len(node.producers)
-        Print("node has producers=%s" % (node.producers))
-        if numProducers==0:
-            if nonProdNode is None:
-                nonProdNode=node
-                nonProdNode.nodeNum=i
-            else:
-                Utils.errorExit("More than one non-producing nodes")
-        else:
-            prodNodes.append(node)
-            producers.extend(node.producers)
-
-    node=prodNodes[0]
-    node1=prodNodes[1]
-    prodNode = prodNodes[0]
-
-    # ***   Identify a block where production is stable   ***
-    #verify nodes are in sync and advancing
-    cluster.waitOnClusterSync(blockAdvancing=5)
-    cluster.biosNode.kill(signal.SIGTERM)
+    prodNode = cluster.getNode(0)
+    nonProdNode = cluster.getNode(1)
 
     accounts=createAccountKeys(3)
     if accounts is None:
@@ -406,10 +285,8 @@ try:
     # add eosio.code permission
     cmd="set account permission eosio.evm active --add-code -p eosio.evm@active"
     prodNode.processCleosCmd(cmd, cmd, silentErrors=True, returnType=ReturnType.raw)
-    time.sleep(1.0)
 
     trans = prodNode.pushMessage(evmAcc.name, "init", '{{"chainid":15555, "fee_params": {{"gas_price": "10000000000", "miner_cut": 10000, "ingress_bridge_fee": "0.0000 {0}"}}}}'.format(CORE_SYMBOL), '-p eosio.evm')
-    time.sleep(1.0)
 
     Utils.Print("EVM init action pushed:" + str(trans))
     prodNode.waitForTransBlockIfNeeded(trans[1], True)
@@ -450,7 +327,6 @@ try:
 
     Utils.Print("Open balance for miner")
     trans=prodNode.pushMessage(evmAcc.name, "open", '[{0}]'.format(minerAcc.name), '-p {0}'.format(minerAcc.name))
-    time.sleep(1.0)
 
     Utils.Print("Transfer initial balances")
 
@@ -518,7 +394,6 @@ try:
     actData = {"miner":minerAcc.name, "rlptx":Web3.to_hex(get_raw_transaction(signed_trx))[2:]}
     Utils.Print("Send balance again, with correct nonce")
     retValue = prodNode.pushMessage(evmAcc.name, "pushtx", json.dumps(actData), '-p {0}'.format(minerAcc.name), silentErrors=True)
-    time.sleep(1.0)
     assert retValue[0], f"push trx should have succeeded: {retValue}"
 
     # incorrect chainid
@@ -538,7 +413,6 @@ try:
     actData = {"miner":minerAcc.name, "rlptx":Web3.to_hex(get_raw_transaction(signed_trx))[2:]}
     Utils.Print("Send balance again, with invalid chainid")
     retValue = prodNode.pushMessage(evmAcc.name, "pushtx", json.dumps(actData), '-p {0}'.format(minerAcc.name), silentErrors=True)
-    time.sleep(1.0)
     assert not retValue[0], f"push trx should have failed: {retValue}"
 
     # correct values for continuing
@@ -568,9 +442,9 @@ try:
         data=Web3.to_bytes(hexstr='608060405234801561001057600080fd5b506101b6806100206000396000f3fe608060405234801561001057600080fd5b50600436106100365760003560e01c80632e64cec11461003b5780636057361d14610059575b600080fd5b610043610075565b604051610050919061013f565b60405180910390f35b610073600480360381019061006e9190610103565b61007e565b005b60008054905090565b806000819055503373ffffffffffffffffffffffffffffffffffffffff16600073ffffffffffffffffffffffffffffffffffffffff167fddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef836040516100e3919061013f565b60405180910390a350565b6000813590506100fd81610169565b92915050565b60006020828403121561011957610118610164565b5b6000610127848285016100ee565b91505092915050565b6101398161015a565b82525050565b60006020820190506101546000830184610130565b92915050565b6000819050919050565b600080fd5b6101728161015a565b811461017d57600080fd5b5056fea264697066735822122061ba78daf70a6edb2db7cbb1dbac434da1ba14ec0e009d4df8907b8c6ee4d63264736f6c63430008070033'),
         chainId=evmChainId
     ), evmSendKey)
+
     actData = {"miner":minerAcc.name, "rlptx":Web3.to_hex(get_raw_transaction(signed_trx))[2:]}
     retValue = prodNode.pushMessage(evmAcc.name, "pushtx", json.dumps(actData), '-p {0}'.format(minerAcc.name), silentErrors=True)
-    time.sleep(1.0)
     assert retValue[0], f"push trx should have succeeded: {retValue}"
     contract_addr = makeContractAddress(fromAdd, nonce)
     nonce = interact_with_storage_contract(contract_addr, nonce)
@@ -606,7 +480,6 @@ try:
     Utils.Print("Set ingress bridge fee")
     data='[{{"gas_price": null, "miner_cut": null, "ingress_bridge_fee": "0.0100 {}"}}]'.format(CORE_SYMBOL)
     trans=prodNode.pushMessage(evmAcc.name, "setfeeparams", data, '-p {0}'.format(evmAcc.name))
-    time.sleep(1.0)
 
     rows=prodNode.getTable(evmAcc.name, evmAcc.name, "balances")
     Utils.Print("\tBefore transfer table rows:", rows)
@@ -615,7 +488,6 @@ try:
     transferAmount="97.5321 {0}".format(CORE_SYMBOL)
     Print("Transfer funds %s from account %s to %s" % (transferAmount, testAcc.name, evmAcc.name))
     prodNode.transferFunds(testAcc, evmAcc, transferAmount, "0xF0cE7BaB13C99bA0565f426508a7CD8f4C247E5a", waitForTransBlock=False)
-    time.sleep(1.0)
 
     row0=prodNode.getTableRow(evmAcc.name, evmAcc.name, "balances", 0)
     Utils.Print("\tAfter transfer table row:", row0)
@@ -638,7 +510,6 @@ try:
     transferAmount="10.0000 {0}".format(CORE_SYMBOL)
     Print("Transfer funds %s from account %s to %s" % (transferAmount, testAcc.name, evmAcc.name))
     prodNode.transferFunds(testAcc, evmAcc, transferAmount, "0xF0cE7BaB13C99bA0565f426508a7CD8f4C247E5a", waitForTransBlock=False)
-    time.sleep(1.0)
     row0=prodNode.getTableRow(evmAcc.name, evmAcc.name, "balances", 0)
     Utils.Print("\tAfter transfer table row:", row0)
     assert(row0["balance"]["balance"] == "1.0243 {0}".format(CORE_SYMBOL)) # should have fee from both transfers
@@ -660,7 +531,6 @@ try:
     transferAmount="42.4242 {0}".format(CORE_SYMBOL)
     Print("Transfer funds %s from account %s to %s" % (transferAmount, testAcc.name, evmAcc.name))
     prodNode.transferFunds(testAcc, evmAcc, transferAmount, "0x9E126C57330FA71556628e0aabd6B6B6783d99fA", waitForTransBlock=False)
-    time.sleep(1.0)
     row0=prodNode.getTableRow(evmAcc.name, evmAcc.name, "balances", 0)
     Utils.Print("\tAfter transfer table row:", row0)
     assert(row0["balance"]["balance"] == "1.0343 {0}".format(CORE_SYMBOL)) # should have fee from all three transfers
@@ -698,7 +568,6 @@ try:
     ), evmSendKey)
     actData = {"miner":minerAcc.name, "rlptx":Web3.to_hex(get_raw_transaction(signed_trx))[2:]}
     trans = prodNode.pushMessage(evmAcc.name, "pushtx", json.dumps(actData), '-p {0}'.format(minerAcc.name), silentErrors=True)
-    time.sleep(1.0)
     prodNode.waitForTransBlockIfNeeded(trans[1], True)
     row4=prodNode.getTableRow(evmAcc.name, evmAcc.name, "account", 4) # 4th balance of this integration test
     Utils.Print("\taccount row4: ", row4)
@@ -717,7 +586,7 @@ try:
     cmdArr=shlex.split(cmd)
     evmNodePOpen=Utils.delayedCheckOutput(cmdArr, stdout=outFile, stderr=errFile)
 
-    time.sleep(4.0) # allow time to sync trxs
+    time.sleep(10) # allow time to sync trxs
 
     # Launch evm-rpc
     rpcStdOutDir = dataDir + "/evm-rpc.stdout"
@@ -730,7 +599,6 @@ try:
     os.environ["WEB3_RPC_ENDPOINT"] = "http://127.0.0.1:8881/"
     os.environ["NODEOS_RPC_ENDPOINT"] = "http://127.0.0.1:8881/"
     evmRPCPOpen=Utils.delayedCheckOutput(cmdArr, stdout=outFile, stderr=errFile)
-    time.sleep(2.0)
 
     # Validate all balances are the same on both sides
     rows=prodNode.getTable(evmAcc.name, evmAcc.name, "account")
@@ -761,7 +629,6 @@ try:
             Utils.Print("  Found ERROR in EVM RPC log: ", line)
             foundErr = True
 
-    # start to test web-socket connection
     Utils.Print("starting websocket proxy")
     cmd = f"node {eosEvmBuildRoot}/peripherals/eos-evm-ws-proxy/main.js"
     cmdArr=shlex.split(cmd)
@@ -806,284 +673,111 @@ try:
     sub_id=res["result"]
     assert(len(sub_id) > 0)
 
-    # try to receive some blocks from websocket server
-    Utils.Print("try to evm blocks from websocket up to the latest one")
+    # try to receive some blocks
     block_count = 0
     prev_hash=""
-    while True:
-        time0 = time.time()
+    while block_count < 10:
+        time.sleep(0.5)
         recevied_msg=ws.recv()
-        time1 = time.time()
         res=json.loads(recevied_msg)
+        if block_count == 0:
+            Utils.Print("recevied block message from websocket:" + recevied_msg)
         block_json=res["params"]["result"]
-        last_ws_evm_blocknum=(block_json["number"])
+        num=block_json["number"] # number can be decimal or hex (with 0x prefix)
         hash=block_json["hash"]
         parent_hash=block_json["parentHash"]
-        Utils.Print("received block {0} from websocket, hash={1}..., parent={2}...".format(last_ws_evm_blocknum, hash[0:8], parent_hash[0:8]))
+        Utils.Print("received block {0} from websocket, hash={1}..., parent={2}...".format(num, hash[0:8], parent_hash[0:8]))
         if block_count > 0:
             assert(len(parent_hash) > 0 and parent_hash == prev_hash)
         prev_hash=hash
         block_count = block_count + 1
-        if time1 - time0 > 0.9:
+
+    # try to unsubscribe of newheads
+    Utils.Print("send eth_unsubscribe")
+    ws.send("{\"jsonrpc\":  \"2.0\", \"id\": 125, \"method\":  \"eth_unsubscribe\", \"params\":[\""+sub_id+"\"]}")
+    try_count = 10
+    while (try_count > 0):
+        recevied_msg=ws.recv()
+        res=json.loads(recevied_msg)
+        if ("id" in res and res["id"] == 125 and res["result"] == True):
             break;
-    
-    tries = 120
-    blockNum = node.getHeadBlockNum()
-    Utils.Print("testing forking behavior: catching defproducera, current native block number is {0}".format(blockNum))
-    last_ws_native_blocknum = blockNum
-    blockProducer=node.getBlockProducerByNum(blockNum)
-    while blockProducer != "defproducera" and tries > 0:
-        time.sleep(0.5)
-        info = node.getInfo()
-        blockNum = int(info["head_block_num"])
-        blockProducer = info["head_block_producer"]
-        tries = tries - 1
+        try_count = try_count - 1
+    if (try_count == 0):
+        Utils.errorExit("failed to unsubscribe, last websocket recevied msg:" + recevied_msg);
 
-    if tries == 0:
-        Utils.errorExit("failed to catch a block produced by defproducera")
+    # test eth subscribe for minedTransactions
+    Utils.Print("send eth_subscribe for minedTransactions")
+    ws.send("{\"jsonrpc\":  \"2.0\", \"id\": 126, \"method\":  \"eth_subscribe\", \"params\":[\"minedTransactions\"]}")
+    recevied_msg=ws.recv()
+    res=json.loads(recevied_msg)
+    Utils.Print("eth_subscribe response from websocket:" + recevied_msg)
+    assert(res["id"] == 126)
+    sub_id=res["result"]
+    assert(len(sub_id) > 0)
 
-    Utils.Print("catching the start of defproducerb")
-    tries = 30
-    while blockProducer != "defproducerb" and tries > 0:
-        time.sleep(0.5)
-        info = node.getInfo()
-        blockNum = int(info["head_block_num"])
-        blockProducer = info["head_block_producer"]
-        tries = tries - 1
+    time.sleep(2.0)
+    # now transafer from EOS->EVM
+    transferAmount="0.1030 {0}".format(CORE_SYMBOL)
+    Print("Transfer funds %s from account %s to %s" % (transferAmount, testAcc.name, evmAcc.name))
+    prodNode.transferFunds(testAcc, evmAcc, transferAmount, "0x9E126C57330FA71556628e0aabd6B6B6783d99fA", waitForTransBlock=False)
 
-    if tries == 0:
-        Utils.errorExit("failed to catch a block produced by defproducerb")
-
-    blockProducer1=node1.getBlockProducerByNum(blockNum)
-    Utils.Print("block number %d is producer by %s in node0" % (blockNum, blockProducer))
-    Utils.Print("block number %d is producer by %s in node1" % (blockNum, blockProducer1))
-
-    # ***   Killing the "bridge" node   ***
-    Print("Sending command to kill \"bridge\" node to separate the 2 producer groups.")
-    # # block number to start expecting node killed after
-    preKillBlockNum=blockNum
-    preKillBlockProducer=blockProducer
-    # # kill at last block before defproducerl, since the block it is killed on will get propagated
-    killAtProducer="defproducerb"
-    inRowCountPerProducer=12
-    # #nonProdNode.killNodeOnProducer(producer=killAtProducer, whereInSequence=(inRowCountPerProducer-1))
-    nonProdNode.kill(killSignal=9)
-    nonProdNode.pid=None
-    nonProdNode.killed=True # false killed
-
-    # ***   Identify a highest block number to check while we are trying to identify where the divergence will occur   ***
-
-    # will search full cycle after the current block, since we don't know how many blocks were produced since retrieving
-    # block number and issuing kill command
-    postKillBlockNum=prodNodes[1].getBlockNum()
-    blockProducers0=[]
-    blockProducers1=[]
-    libs0=[]
-    libs1=[]
-    lastBlockNum=max([blockNum,postKillBlockNum])+2*maxActiveProducers*inRowCountPerProducer
-    actualLastBlockNum=None
-    prodChanged=False
-    nextProdChange=False
-    #identify the earliest LIB to start identify the earliest block to check if divergent branches eventually reach concensus
-    (headBlockNum, libNumAroundDivergence)=getMinHeadAndLib(prodNodes)
-    Print("Tracking block producers from %d till divergence or %d. Head block is %d and lowest LIB is %d" % (preKillBlockNum, lastBlockNum, headBlockNum, libNumAroundDivergence))
-    transitionCount=0
-    missedTransitionBlock=None
-    for blockNum in range(preKillBlockNum,lastBlockNum + 1):
-        #avoiding getting LIB until my current block passes the head from the last time I checked
-        if blockNum>headBlockNum:
-            (headBlockNum, libNumAroundDivergence)=getMinHeadAndLib(prodNodes)
-
-        blockProducer0=prodNodes[0].getBlockProducerByNum(blockNum, timeout=70)
-        blockProducer1=prodNodes[1].getBlockProducerByNum(blockNum, timeout=70)
-        Print("blockNum = {} blockProducer0 = {} blockProducer1 = {}".format(blockNum, blockProducer0, blockProducer1))
-        blockProducers0.append({"blockNum":blockNum, "prod":blockProducer0})
-        blockProducers1.append({"blockNum":blockNum, "prod":blockProducer1})
-
-        if blockProducer0!=blockProducer1:
-            Print("Divergence identified at block %s, node_00 producer: %s, node_01 producer: %s" % (blockNum, blockProducer0, blockProducer1))
-            actualLastBlockNum=blockNum
+    # try to receive the EOS->EVM transaction
+    try_count = 3
+    while (try_count > 0):
+        recevied_msg=ws.recv()
+        res=json.loads(recevied_msg)
+        Utils.Print("last ws msg is:" + recevied_msg)
+        if ("method" in res and res["method"] == "eth_subscription"):
+            assert(res["params"]["result"]["transaction"]["value"] == "93000000000000000" or \
+                res["params"]["result"]["transaction"]["value"] == "0x14a6701dc1c8000") # 0.103 - 0.01(fee)=0.093
             break
+        try_count = try_count - 1
+    if (try_count == 0):
+        Utils.errorExit("failed to get transaction of minedTransactions subscription, last websocket recevied msg:" + recevied_msg);
 
-    if blockProducer0==blockProducer1:
-        errorExit("Divergence not found")
-
-    # receive blocks from websocket server
-    Utils.Print("receive some blocks from websocket up to the latest blocks, which should cover the expected diverage point");
-    time.sleep(1.0)
-    hash_dict = {}
-    while True:
-        time0 = time.time()
+    # try to unsubscribe for minedTransactions
+    Utils.Print("send eth_unsubscribe")
+    ws.send("{\"jsonrpc\":  \"2.0\", \"id\": 126, \"method\":  \"eth_unsubscribe\", \"params\":[\""+sub_id+"\"]}")
+    try_count = 10
+    while (try_count > 0):
         recevied_msg=ws.recv()
-        time1 = time.time()
         res=json.loads(recevied_msg)
-        block_json=res["params"]["result"]
-        last_ws_evm_blocknum=(block_json["number"])
-        hash=block_json["hash"]
-        parent_hash=block_json["parentHash"]
-        Utils.Print("received block {0} from websocket, hash={1}..., parent={2}...".format(last_ws_evm_blocknum, hash[0:8], parent_hash[0:8]))
-        if block_count > 0:
-            assert(len(parent_hash) > 0 and parent_hash == prev_hash)
-        prev_hash=hash
-        hash_dict[hash] = last_ws_evm_blocknum
-        block_count = block_count + 1
-        if (time1 - time0 > 0.9):
-           break
-
-    #verify that the non producing node is not alive (and populate the producer nodes with current getInfo data to report if
-    #an error occurs)
-    time.sleep(2.0) # give sometime for the nonProdNode to shutdown
-    if nonProdNode.verifyAlive():
-        Utils.errorExit("Expected the non-producing node to have shutdown.")
-
-    Print("Analyzing the producers leading up to the block after killing the non-producing node, expecting divergence at %d" % (blockNum))
-
-    firstDivergence=analyzeBPs(blockProducers0, blockProducers1, expectDivergence=True)
-    # Nodes should not have diverged till the last block
-    if firstDivergence!=blockNum:
-        Utils.errorExit("Expected to diverge at %s, but diverged at %s." % (firstDivergence, blockNum))
-    blockProducers0=[]
-    blockProducers1=[]
-
-    for prodNode in prodNodes:
-        info=prodNode.getInfo()
-        Print("node info: %s" % (info))
-
-    killBlockNum=blockNum
-    lastBlockNum=killBlockNum+(maxActiveProducers - 1)*inRowCountPerProducer+1  # allow 1st testnet group to produce just 1 more block than the 2nd
-
-    Print("Tracking the blocks from the divergence till there are 10*12 blocks on one chain and 10*12+1 on the other, from block %d to %d" % (killBlockNum, lastBlockNum))
-
-    for blockNum in range(killBlockNum,lastBlockNum):
-        blockProducer0=prodNodes[0].getBlockProducerByNum(blockNum)
-        blockProducer1=prodNodes[1].getBlockProducerByNum(blockNum)
-        blockProducers0.append({"blockNum":blockNum, "prod":blockProducer0})
-        blockProducers1.append({"blockNum":blockNum, "prod":blockProducer1})
-
-
-    Print("Analyzing the producers from the divergence to the lastBlockNum and verify they stay diverged, expecting divergence at block %d" % (killBlockNum))
-
-    firstDivergence=analyzeBPs(blockProducers0, blockProducers1, expectDivergence=True)
-    if firstDivergence!=killBlockNum:
-        Utils.errorExit("Expected to diverge at %s, but diverged at %s." % (firstDivergence, killBlockNum))
-    blockProducers0=[]
-    blockProducers1=[]
-
-    for prodNode in prodNodes:
-        info=prodNode.getInfo()
-        Print("node info: %s" % (info))
-
-    # Print("killing node1(defproducerc) so that bridge node will frist connect to node0 (defproducera, defproducerb)")
-    # node1.kill(killSignal=9)
-    # node1.killed=True
-    # time.sleep(2)
-    # if node1.verifyAlive():
-    #     Utils.errorExit("Expected the node 1 to have shutdown.")
-
-    Print("Relaunching the non-producing bridge node to connect the node 0 (defproducera, defproducerb)")
-    if not nonProdNode.relaunch(chainArg=" --hard-replay "):
-        errorExit("Failure - (non-production) node %d should have restarted" % (nonProdNode.nodeNum))
-
-    # Print("Relaunch node 1 (defproducerc) and let it connect to brigde node that already synced up with node 0")
-    # time.sleep(10)
-    # if not node1.relaunch(chainArg=" --enable-stale-production "):
-    #     errorExit("Failure - (non-production) node 1 should have restarted")
-
-    Print("Waiting to allow forks to resolve")
-    time.sleep(3)
-
-    for prodNode in prodNodes:
-        info=prodNode.getInfo()
-        Print("node info: %s" % (info))
-
-    #ensure that the nodes have enough time to get in concensus, so wait for 3 producers to produce their complete round
-    time.sleep(inRowCountPerProducer * 3 / 2)
-    remainingChecks=60
-    match=False
-    checkHead=False
-    checkMatchBlock=killBlockNum
-    forkResolved=False
-    while remainingChecks>0:
-        if checkMatchBlock == killBlockNum and checkHead:
-            checkMatchBlock = prodNodes[0].getBlockNum()
-        blockProducer0=prodNodes[0].getBlockProducerByNum(checkMatchBlock)
-        blockProducer1=prodNodes[1].getBlockProducerByNum(checkMatchBlock)
-        match=blockProducer0==blockProducer1
-        if match:
-            if checkHead:
-                forkResolved=True
-                break
-            else:
-                checkHead=True
-                continue
-        Print("Fork has not resolved yet, wait a little more. Block %s has producer %s for node_00 and %s for node_01.  Original divergence was at block %s. Wait time remaining: %d" % (checkMatchBlock, blockProducer0, blockProducer1, killBlockNum, remainingChecks))
-        time.sleep(1)
-        remainingChecks-=1
-    
-    assert forkResolved, "fork was not resolved in a reasonable time. node_00 lib {} head {}, node_01 lib {} head {}".format(\
-        prodNodes[0].getIrreversibleBlockNum(), prodNodes[0].getHeadBlockNum(), \
-        prodNodes[1].getIrreversibleBlockNum(), prodNodes[1].getHeadBlockNum())
-
-    for prodNode in prodNodes:
-        info=prodNode.getInfo()
-        Print("node info: %s" % (info))
-
-    # ensure all blocks from the lib before divergence till the current head are now in consensus
-    endBlockNum=max(prodNodes[0].getBlockNum(), prodNodes[1].getBlockNum())
-
-    Print("Identifying the producers from the saved LIB to the current highest head, from block %d to %d" % (libNumAroundDivergence, endBlockNum))
-
-    for blockNum in range(libNumAroundDivergence,endBlockNum):
-        blockProducer0=prodNodes[0].getBlockProducerByNum(blockNum)
-        blockProducer1=prodNodes[1].getBlockProducerByNum(blockNum)
-        blockProducers0.append({"blockNum":blockNum, "prod":blockProducer0})
-        blockProducers1.append({"blockNum":blockNum, "prod":blockProducer1})
-
-
-    Print("Analyzing the producers from the saved LIB to the current highest head and verify they match now")
-
-    analyzeBPs(blockProducers0, blockProducers1, expectDivergence=False)
-
-    resolvedKillBlockProducer=None
-    for prod in blockProducers0:
-        if prod["blockNum"]==killBlockNum:
-            resolvedKillBlockProducer = prod["prod"]
-    if resolvedKillBlockProducer is None:
-        Utils.errorExit("Did not find find block %s (the original divergent block) in blockProducers0, test setup is wrong." % (killBlockNum))
-    Print("Fork resolved and determined producer %s for block %s" % (resolvedKillBlockProducer, killBlockNum))
-
-    # try to receive some blocks from websocket server
-    Utils.Print("receive blocks from websocket up to the latest blocks")
-    fork_switched = False
-    fork_hash = ""
-    while True:
-        time0 = time.time()
-        recevied_msg=ws.recv()
-        time1 = time.time()
-        res=json.loads(recevied_msg)
-        block_json=res["params"]["result"]
-        last_ws_evm_blocknum=(block_json["number"])
-        hash=block_json["hash"]
-        parent_hash=block_json["parentHash"]
-        Utils.Print("received block {0} from websocket, hash={1}..., parent={2}...".format(last_ws_evm_blocknum, hash[0:8], parent_hash[0:8]))
-        if block_count > 0:
-            assert(len(parent_hash) > 0)
-            if parent_hash != prev_hash:
-                assert(parent_hash in hash_dict)
-                fork_switched = True
-                fork_hash = parent_hash
-                Utils.Print("EVM chain fork switch detected, block linkable")
-        prev_hash=hash
-        hash_dict[hash] = last_ws_evm_blocknum
-        block_count = block_count + 1
-        if time1 - time0 > 0.9:
+        if ("id" in res and res["id"] == 126 and res["result"] == True):
             break;
+        try_count = try_count - 1
+    if (try_count == 0):
+        Utils.errorExit("failed to unsubscribe, last websocket recevied msg:" + recevied_msg);
+        
+    time.sleep(1.0)
 
-    assert(fork_switched == True, "no EVM chain fork switch detected")
-    Utils.Print("fork swtiched at hash {0}".format(fork_hash))
+    # test eth subscribe for logs
+    Utils.Print("send eth_subscribe for logs")
+    ws.send("{\"jsonrpc\":  \"2.0\", \"id\": 127, \"method\":  \"eth_subscribe\", \"params\":[\"logs\"]}")
+    recevied_msg=ws.recv()
+    res=json.loads(recevied_msg)
+    Utils.Print("eth_subscribe response from websocket:" + recevied_msg)
+    assert(res["id"] == 127)
+    sub_id=res["result"]
+    assert(len(sub_id) > 0)
 
-    blockProducers0=[]
-    blockProducers1=[]
+    time.sleep(1.0)
+    # now interact with contract that emits logs
+    evmSendKey = "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+    nonce = nonce_1
+    nonce = interact_with_storage_contract(contract_addr, nonce)
+
+    # receive logs from web-socket server
+    recevied_msg=ws.recv()
+    res=json.loads(recevied_msg)
+    Utils.Print("last ws msg is:" + recevied_msg)
+    assert(res["params"]["result"]["data"] == "0x0000000000000000000000000000000000000000000000000000000000000007")
+    assert(res["params"]["result"]["topics"] == ["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef","0x0000000000000000000000000000000000000000000000000000000000000000","0x000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266"])
+    recevied_msg=ws.recv()
+    res=json.loads(recevied_msg)
+    Utils.Print("last ws msg is:" + recevied_msg)
+    assert(res["params"]["result"]["data"] == "0x0000000000000000000000000000000000000000000000000000000000000008")
+    assert(res["params"]["result"]["topics"] == ["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef","0x0000000000000000000000000000000000000000000000000000000000000000","0x000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266"])
+
     ws.close()
 
     testSuccessful= not foundErr

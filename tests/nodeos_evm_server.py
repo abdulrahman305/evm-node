@@ -28,7 +28,7 @@ from TestHarness.core_symbol import CORE_SYMBOL
 from antelope_name import convert_name_to_value
 
 ###############################################################
-# nodeos_eos_evm_server
+# nodeos_evm_server
 #
 # Set up a EVM env
 #
@@ -46,7 +46,7 @@ from antelope_name import convert_name_to_value
 #
 # Example:
 #  cd ~/ext/leap/build
-#  ~/ext/eos-evm/tests/leap/nodeos_eos_evm_server.py --evm-contract-root ~/ext/eos-evm/contract/build --leave-running
+#  ~/ext/eos-evm/tests/leap/nodeos_evm_server.py --evm-contract-root ~/ext/eos-evm/contract/build --leave-running
 #
 #  Launches wallet at port: 9899
 #    Example: bin/cleos --wallet-url http://127.0.0.1:9899 ...

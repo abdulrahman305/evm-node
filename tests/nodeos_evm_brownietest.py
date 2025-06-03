@@ -41,7 +41,7 @@ from TestHarness.testUtils import unhandledEnumType
 from antelope_name import convert_name_to_value
 
 ###############################################################
-# nodeos_eos_evm_test
+# nodeos_evm_test
 #
 # Set up a EVM env and run simple tests.
 #
@@ -54,11 +54,11 @@ from antelope_name import convert_name_to_value
 #
 # Example (Running with leap src build):
 #  cd ~/leap/build
-#  ~/evm-node/build/tests/nodeos_eos_evm_test.py --evm-contract-root ~/eos-evm/build --evm-build-root ~/evm-node/build --use-miner ~/evm-miner --leave-running
+#  ~/evm-node/build/tests/nodeos_evm_test.py --evm-contract-root ~/eos-evm/build --evm-build-root ~/evm-node/build --use-miner ~/evm-miner --leave-running
 #
 # Example (Running with leap dev-install):
 #  ln -s /usr/share/leap_testing/tests/TestHarness /usr/lib/python3/dist-packages/TestHarness
-#  ~/evm-node/build/tests/nodeos_eos_evm_test.py --evm-contract-root ~/eos-evm/build --evm-build-root ~/evm-node/build --use-miner ~/evm-miner --leave-running
+#  ~/evm-node/build/tests/nodeos_evm_test.py --evm-contract-root ~/eos-evm/build --evm-build-root ~/evm-node/build --use-miner ~/evm-miner --leave-running
 #
 #  Launches wallet at port: 9899
 #    Example: bin/cleos --wallet-url http://127.0.0.1:9899 ...

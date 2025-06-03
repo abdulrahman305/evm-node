@@ -45,10 +45,10 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 make -j4
 ```
 
-### Setup nodeos_eos_evm_server.py python env
+### Setup nodeos_evm_server.py python env
 ```
 cd ~/evmperf/leap/build/tests
-ln -s ~/evmperf/eos-evm/tests/leap/nodeos_eos_evm_server.py nodeos_eos_evm_server.py
+ln -s ~/evmperf/eos-evm/tests/leap/nodeos_evm_server.py nodeos_evm_server.py
 sed -i 's/SYS/EOS/g' core_symbol.py
 python3 -m venv venv
 source venv/bin/activate
@@ -57,16 +57,16 @@ pip install 'web3>=6' flask flask-cors
 
 
 ### Launch nodeos and deploy EVM contract
-_use --use-eos-vm-oc=1 when launching **nodeos_eos_evm_server.py** if you want to measure OC performance_
+_use --use-eos-vm-oc=1 when launching **nodeos_evm_server.py** if you want to measure OC performance_
 
 ```
 cd ~/evmperf/leap/build/tests
 source venv/bin/activate
 cd ..
-./tests/nodeos_eos_evm_server.py --leave-running --evm-contract-root ~/evmperf/eos-evm/contract/build
+./tests/nodeos_evm_server.py --leave-running --evm-contract-root ~/evmperf/eos-evm/contract/build
 ```
 
-(_wait until nodeos_eos_evm_server start listening at localhost:5000_)
+(_wait until nodeos_evm_server start listening at localhost:5000_)
 
 ### Launch evm-node
 ```
@@ -83,32 +83,32 @@ cd ~/evmperf/eos-evm/build/bin
 
 ### Install scripts dependencies
 ```
-cd ~/evmperf/eos-evm/tests/leap/nodeos_eos_evm_server
+cd ~/evmperf/eos-evm/tests/leap/nodeos_evm_server
 yarn install
 ```
 
 
 ### Deploy Uniswap V2
 ```
-cd ~/evmperf/eos-evm/tests/leap/nodeos_eos_evm_server
+cd ~/evmperf/eos-evm/tests/leap/nodeos_evm_server
 npx hardhat run scripts/deploy-uniswap.js
 ```
 
 ### Deploy Recursive contract
 ```
-cd ~/evmperf/eos-evm/tests/leap/nodeos_eos_evm_server
+cd ~/evmperf/eos-evm/tests/leap/nodeos_evm_server
 npx hardhat run scripts/deploy-recursive.js
 ```
 
 ### Allow Uniswap router to transfer AAA tokens
 ```
-cd ~/evmperf/eos-evm/tests/leap/nodeos_eos_evm_server
+cd ~/evmperf/eos-evm/tests/leap/nodeos_evm_server
 npx hardhat approve --erc20 0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9 --router 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0 --amount 10000
 ```
 
 ### Tail logs _(separate console)_
 ```
-cd ~/evmperf/eos-evm/tests/leap/nodeos_eos_evm_server
+cd ~/evmperf/eos-evm/tests/leap/nodeos_evm_server
 ./extract-logtime-cmd.sh ~/evmperf/leap/build/var/lib/node_01/stderr.txt
 ```
 
