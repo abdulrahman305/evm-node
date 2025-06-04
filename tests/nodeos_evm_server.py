@@ -28,9 +28,9 @@ from TestHarness.core_symbol import CORE_SYMBOL
 from antelope_name import convert_name_to_value
 
 ###############################################################
-# nodeos_eos_evm_server
+# nodeos_evm_server
 #
-# Set up a EOS EVM env
+# Set up a EVM env
 #
 # This test sets up 2 producing nodes and one "bridge" node using test_control_api_plugin.
 #   One producing node has 3 of the elected producers and the other has 1 of the elected producers.
@@ -40,13 +40,13 @@ from antelope_name import convert_name_to_value
 #   The bridge node has the test_control_api_plugin, which exposes a restful interface that the test script uses to kill
 #       the "bridge" node when /fork endpoint called.
 #
-# --eos-evm-contract-root should point to root of EOS EVM Contract build dir
+# --evm-contract-root should point to root of EVM Contract build dir
 # --genesis-json file to save generated EVM genesis json
-# --read-endpoint eos-evm-rpc endpoint (read endpoint)
+# --read-endpoint evm-rpc endpoint (read endpoint)
 #
 # Example:
 #  cd ~/ext/leap/build
-#  ~/ext/eos-evm/tests/leap/nodeos_eos_evm_server.py --eos-evm-contract-root ~/ext/eos-evm/contract/build --leave-running
+#  ~/ext/eos-evm/tests/leap/nodeos_evm_server.py --evm-contract-root ~/ext/eos-evm/contract/build --leave-running
 #
 #  Launches wallet at port: 9899
 #    Example: bin/cleos --wallet-url http://127.0.0.1:9899 ...
@@ -64,23 +64,23 @@ Print=Utils.Print
 errorExit=Utils.errorExit
 
 appArgs=AppArgs()
-appArgs.add(flag="--eos-evm-contract-root", type=str, help="EOS EVM Contract build dir", default=None)
-appArgs.add(flag="--eos-evm-bridge-contracts-root", type=str, help="EOS EVM Bridge contracts build dir", default=None)
-appArgs.add(flag="--genesis-json", type=str, help="File to save generated genesis json", default="eos-evm-genesis.json")
-appArgs.add(flag="--read-endpoint", type=str, help="EVM read endpoint (eos-evm-rpc)", default="http://localhost:8881")
-appArgs.add(flag="--use-eos-vm-oc", type=bool, help="EOS EVM Contract build dir", default=False)
+appArgs.add(flag="--evm-contract-root", type=str, help="EVM Contract build dir", default=None)
+appArgs.add(flag="--eos-evm-bridge-contracts-root", type=str, help="EVM Bridge contracts build dir", default=None)
+appArgs.add(flag="--genesis-json", type=str, help="File to save generated genesis json", default="evm-genesis.json")
+appArgs.add(flag="--read-endpoint", type=str, help="EVM read endpoint (evm-rpc)", default="http://localhost:8881")
+appArgs.add(flag="--use-eos-vm-oc", type=bool, help="EVM Contract build dir", default=False)
 
 args=TestHelper.parse_args({"--keep-logs","--dump-error-details","-v","--leave-running" }, applicationSpecificArgs=appArgs)
 debug=args.v
 killEosInstances= not args.leave_running
 dumpErrorDetails=args.dump_error_details
 keepLogs=args.keep_logs
-eosEvmContractRoot=args.eos_evm_contract_root
+eosEvmContractRoot=args.evm_contract_root
 eosEvmBridgeContractsRoot=args.eos_evm_bridge_contracts_root
 gensisJson=args.genesis_json
 readEndpoint=args.read_endpoint
 useEosVmOC=args.use_eos_vm_oc
-assert eosEvmContractRoot is not None, "--eos-evm-contract-root is required"
+assert eosEvmContractRoot is not None, "--evm-contract-root is required"
 
 totalProducerNodes=2
 totalNonProducerNodes=1
@@ -413,8 +413,8 @@ try:
     Utils.Print("Generated EVM json genesis file in: %s" % gensisJson)
     Utils.Print("")
     Utils.Print("You can now run:")
-    Utils.Print("  eos-evm-node --plugin=blockchain_plugin --ship-endpoint=127.0.0.1:8999 --genesis-json=%s --chain-data=/tmp --verbosity=4" % gensisJson)
-    Utils.Print("  eos-evm-rpc --eos-evm-node=127.0.0.1:8080 --http-port=0.0.0.0:8881 --chaindata=/tmp --api-spec=eth,debug,net,trace")
+    Utils.Print("  evm-node --plugin=blockchain_plugin --ship-endpoint=127.0.0.1:8999 --genesis-json=%s --chain-data=/tmp --verbosity=4" % gensisJson)
+    Utils.Print("  evm-rpc --evm-node=127.0.0.1:8080 --http-port=0.0.0.0:8881 --chaindata=/tmp --api-spec=eth,debug,net,trace")
     Utils.Print("")
     Utils.Print("Web3 endpoint:")
     Utils.Print("  http://localhost:5000")
