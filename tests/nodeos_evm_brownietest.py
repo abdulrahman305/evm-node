@@ -41,24 +41,24 @@ from TestHarness.testUtils import unhandledEnumType
 from antelope_name import convert_name_to_value
 
 ###############################################################
-# nodeos_eos_evm_test
+# nodeos_evm_test
 #
-# Set up a EOS EVM env and run simple tests.
+# Set up a EVM env and run simple tests.
 #
 # Need to install:
 #   web3      - pip install web3
 #
-# --use-miner path to eos-evm-miner. if specified then uses eos-evm-miner to get gas price.
-# --eos-evm-build-root should point to the root of EOS EVM build dir
-# --eos-evm-contract-root should point to root of EOS EVM contract build dir
+# --use-miner path to evm-miner. if specified then uses evm-miner to get gas price.
+# --evm-build-root should point to the root of EVM build dir
+# --evm-contract-root should point to root of EVM contract build dir
 #
 # Example (Running with leap src build):
 #  cd ~/leap/build
-#  ~/eos-evm-node/build/tests/nodeos_eos_evm_test.py --eos-evm-contract-root ~/eos-evm/build --eos-evm-build-root ~/eos-evm-node/build --use-miner ~/eos-evm-miner --leave-running
+#  ~/evm-node/build/tests/nodeos_evm_test.py --evm-contract-root ~/eos-evm/build --evm-build-root ~/evm-node/build --use-miner ~/evm-miner --leave-running
 #
 # Example (Running with leap dev-install):
 #  ln -s /usr/share/leap_testing/tests/TestHarness /usr/lib/python3/dist-packages/TestHarness
-#  ~/eos-evm-node/build/tests/nodeos_eos_evm_test.py --eos-evm-contract-root ~/eos-evm/build --eos-evm-build-root ~/eos-evm-node/build --use-miner ~/eos-evm-miner --leave-running
+#  ~/evm-node/build/tests/nodeos_evm_test.py --evm-contract-root ~/eos-evm/build --evm-build-root ~/evm-node/build --use-miner ~/evm-miner --leave-running
 #
 #  Launches wallet at port: 9899
 #    Example: bin/cleos --wallet-url http://127.0.0.1:9899 ...
@@ -81,10 +81,10 @@ def prefix_0x(hexstr):
         return hexstr
 
 appArgs=AppArgs()
-appArgs.add(flag="--eos-evm-contract-root", type=str, help="EOS EVM contract build dir", default=None)
-appArgs.add(flag="--eos-evm-build-root", type=str, help="EOS EVM build dir", default=None)
-appArgs.add(flag="--genesis-json", type=str, help="File to save generated genesis json", default="eos-evm-genesis.json")
-appArgs.add(flag="--use-miner", type=str, help="EOS EVM miner to use to send trx to nodeos", default=None)
+appArgs.add(flag="--evm-contract-root", type=str, help="EVM contract build dir", default=None)
+appArgs.add(flag="--evm-build-root", type=str, help="EVM build dir", default=None)
+appArgs.add(flag="--genesis-json", type=str, help="File to save generated genesis json", default="evm-genesis.json")
+appArgs.add(flag="--use-miner", type=str, help="EVM miner to use to send trx to nodeos", default=None)
 appArgs.add(flag="--miner-cmd", type=str, help="command line to start EVM miner", default="node dist/index.js")
 appArgs.add(flag="--flask-proxy-root", type=str, help="command line to start EVM miner", default=".")
 
@@ -92,15 +92,15 @@ args=TestHelper.parse_args({"--keep-logs","--dump-error-details","-v","--leave-r
 debug=args.v
 killEosInstances= not args.leave_running
 dumpErrorDetails=args.dump_error_details
-eosEvmContractRoot=args.eos_evm_contract_root
-eosEvmBuildRoot=args.eos_evm_build_root
+eosEvmContractRoot=args.evm_contract_root
+eosEvmBuildRoot=args.evm_build_root
 genesisJson=args.genesis_json
 useMiner=args.use_miner
 minerCmd=args.miner_cmd
 flaskProxyRoot=args.flask_proxy_root
 
-assert eosEvmContractRoot is not None, "--eos-evm-contract-root is required"
-assert eosEvmBuildRoot is not None, "--eos-evm-build-root is required"
+assert eosEvmContractRoot is not None, "--evm-contract-root is required"
+assert eosEvmBuildRoot is not None, "--evm-build-root is required"
 
 szabo = 1000000000000
 seed=1
@@ -165,7 +165,7 @@ def setEosEvmMinerEnv(eosnode):
     os.environ["MINER_PERMISSION"]="active"
     os.environ["EXPIRE_SEC"]="60"
 
-    Utils.Print(f"Set up configuration of eos-evm-miner via environment variables.")
+    Utils.Print(f"Set up configuration of evm-miner via environment variables.")
     Utils.Print(f"PRIVATE_KEY: {os.environ.get('PRIVATE_KEY')}")
     Utils.Print(f"MINER_ACCOUNT: {os.environ.get('MINER_ACCOUNT')}")
     Utils.Print(f"RPC_ENDPOINTS: {os.environ.get('RPC_ENDPOINTS')}")
@@ -404,13 +404,13 @@ try:
     trans=prodNode.pushMessage(evmAcc.name, "open", '[{0}]'.format(minerAcc.name), '-p {0}'.format(minerAcc.name))
 
     #
-    # Setup eos-evm-miner
+    # Setup evm-miner
     #
     if useMiner is not None:
         setEosEvmMinerEnv(nonProdNode)
-        dataDir = Utils.DataDir + "eos-evm-miner"
-        outDir = dataDir + "/eos-evm-miner.stdout"
-        errDir = dataDir + "/eos-evm-miner.stderr"
+        dataDir = Utils.DataDir + "evm-miner"
+        outDir = dataDir + "/evm-miner.stdout"
+        errDir = dataDir + "/evm-miner.stderr"
         shutil.rmtree(dataDir, ignore_errors=True)
         os.makedirs(dataDir)
         outFile = open(outDir, "w")
@@ -473,8 +473,8 @@ try:
     Utils.Print("Generated EVM json genesis file in: %s" % genesisJson)
     Utils.Print("")
     Utils.Print("You can now run:")
-    Utils.Print("  eos-evm-node --plugin=blockchain_plugin --ship-core-account=eosio.evm --ship-endpoint=127.0.0.1:8999 --genesis-json=%s --chain-data=/tmp/data --verbosity=5" % genesisJson)
-    Utils.Print("  eos-evm-rpc --eos-evm-node=127.0.0.1:8080 --http-port=0.0.0.0:8881 --chaindata=/tmp/data --api-spec=eth,debug,net,trace")
+    Utils.Print("  evm-node --plugin=blockchain_plugin --ship-core-account=eosio.evm --ship-endpoint=127.0.0.1:8999 --genesis-json=%s --chain-data=/tmp/data --verbosity=5" % genesisJson)
+    Utils.Print("  evm-rpc --evm-node=127.0.0.1:8080 --http-port=0.0.0.0:8881 --chaindata=/tmp/data --api-spec=eth,debug,net,trace")
     Utils.Print("")
 
     #
@@ -490,16 +490,16 @@ try:
     rows=prodNode.getTable(evmAcc.name, evmAcc.name, "balances")
     Utils.Print("\tBefore transfer table rows:", rows)
 
-    # Launch eos-evm-node
-    Utils.Print("===== laucnhing eos-evm-node =====")
+    # Launch evm-node
+    Utils.Print("===== laucnhing evm-node =====")
     dataDir = Utils.DataDir + "eos_evm"
-    nodeStdOutDir = dataDir + "/eos-evm-node.stdout"
-    nodeStdErrDir = dataDir + "/eos-evm-node.stderr"
+    nodeStdOutDir = dataDir + "/evm-node.stdout"
+    nodeStdErrDir = dataDir + "/evm-node.stderr"
     shutil.rmtree(dataDir, ignore_errors=True)
     os.makedirs(dataDir)
     outFile = open(nodeStdOutDir, "w")
     errFile = open(nodeStdErrDir, "w")
-    cmd = f"{eosEvmBuildRoot}/bin/eos-evm-node --plugin=blockchain_plugin --ship-core-account=eosio.evm --ship-endpoint=127.0.0.1:8999 --genesis-json={genesisJson} --verbosity=5 --nocolor=1 --chain-data={dataDir}"
+    cmd = f"{eosEvmBuildRoot}/bin/evm-node --plugin=blockchain_plugin --ship-core-account=eosio.evm --ship-endpoint=127.0.0.1:8999 --genesis-json={genesisJson} --verbosity=5 --nocolor=1 --chain-data={dataDir}"
     Utils.Print(f"Launching: {cmd}")
     cmdArr=shlex.split(cmd)
     evmNodePOpen=Utils.delayedCheckOutput(cmdArr, stdout=outFile, stderr=errFile)
@@ -525,13 +525,13 @@ try:
     # Transfer funds (now using version=1)
     nonProdNode.transferFunds(cluster.eosioAccount, evmAcc, "112.0000 EOS", "0xB106D2C286183FFC3D1F0C4A6f0753bB20B407c2", waitForTransBlock=True)
 
-    # Launch eos-evm-rpc
-    Utils.Print("===== laucnhing eos-evm-rpc =====")
-    rpcStdOutDir = dataDir + "/eos-evm-rpc.stdout"
-    rpcStdErrDir = dataDir + "/eos-evm-rpc.stderr"
+    # Launch evm-rpc
+    Utils.Print("===== laucnhing evm-rpc =====")
+    rpcStdOutDir = dataDir + "/evm-rpc.stdout"
+    rpcStdErrDir = dataDir + "/evm-rpc.stderr"
     outFile = open(rpcStdOutDir, "w")
     errFile = open(rpcStdErrDir, "w")
-    cmd = f"{eosEvmBuildRoot}/bin/eos-evm-rpc --eos-evm-node=127.0.0.1:8080 --http-port=0.0.0.0:8881 --chaindata={dataDir} --api-spec=eth,debug,net,trace"
+    cmd = f"{eosEvmBuildRoot}/bin/evm-rpc --evm-node=127.0.0.1:8080 --http-port=0.0.0.0:8881 --chaindata={dataDir} --api-spec=eth,debug,net,trace"
     Utils.Print(f"Launching: {cmd}")
     cmdArr=shlex.split(cmd)
     evmRPCPOpen=Utils.delayedCheckOutput(cmdArr, stdout=outFile, stderr=errFile)

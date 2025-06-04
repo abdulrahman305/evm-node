@@ -7,11 +7,11 @@
       "target":"4",
       "prerelease":false
    },
-   "eos-evm-contract":{
+   "evm-contract":{
       "target":"main",
       "prerelease":false
    },
-   "eos-evm-miner":{
+   "evm-miner":{
       "target":"main",
       "prerelease":false
    }

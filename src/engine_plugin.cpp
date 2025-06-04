@@ -112,7 +112,7 @@ class engine_plugin_impl : std::enable_shared_from_this<engine_plugin_impl> {
 
          auto sentry = std::make_shared<nopsentry>();
          eth.reset(new silkworm::EthereumBackEnd(node_settings, &db_env, sentry));
-         eth->set_node_name("EOS EVM Node");
+         eth->set_node_name("EVM Node");
          SILK_INFO << "Created Ethereum Backend with network id <" << node_settings.network_id << ">";
 
          server.reset(new silkworm::rpc::BackEndKvServer(server_settings, *eth.get()));

@@ -36,20 +36,20 @@ from TestHarness.testUtils import unhandledEnumType
 from antelope_name import convert_name_to_value
 
 ###############################################################
-# nodeos_eos_evm_ws_test_fork
+# nodeos_evm_ws_test_fork
 #
-# Set up a EOS EVM env and run leap fork tests with websocket support
-# This test is based on both nodeos_eos_evm_ws_test_basic & nodeos_short_fork_take_over_test
+# Set up a EVM env and run leap fork tests with websocket support
+# This test is based on both nodeos_evm_ws_test_basic & nodeos_short_fork_take_over_test
 #
 # Need to install:
 #   web3      - pip install web3
 #             - pip install otree
 #
-# --eos-evm-build-root should point to the root of EOS EVM build dir
-# --eos-evm-contract-root should point to root of EOS EVM contract build dir
+# --evm-build-root should point to the root of EVM build dir
+# --evm-contract-root should point to root of EVM contract build dir
 #
 #  cd build/tests
-# ./nodeos_eos_gasparam_fork_test.py --eos-evm-contract-root ~/workspaces/TrustEVM/build --eos-evm-build-root ~/workspaces/eos-evm-node/build -v
+# ./nodeos_evm_ws_test_fork.py --evm-contract-root ~/workspaces/TrustEVM/build --evm-build-root ~/workspaces/evm-node/build -v
 #
 #
 ###############################################################
@@ -152,17 +152,17 @@ def getMinHeadAndLib(prodNodes):
     return (headBlockNum, libNum)
 
 appArgs=AppArgs()
-appArgs.add(flag="--eos-evm-contract-root", type=str, help="EOS EVM contract build dir", default=None)
-appArgs.add(flag="--eos-evm-build-root", type=str, help="EOS EVM build dir", default=None)
-appArgs.add(flag="--genesis-json", type=str, help="File to save generated genesis json", default="eos-evm-genesis.json")
+appArgs.add(flag="--evm-contract-root", type=str, help="EVM contract build dir", default=None)
+appArgs.add(flag="--evm-build-root", type=str, help="EVM build dir", default=None)
+appArgs.add(flag="--genesis-json", type=str, help="File to save generated genesis json", default="evm-genesis.json")
 
 args=TestHelper.parse_args({"--keep-logs","--dump-error-details","-v","--leave-running" }, applicationSpecificArgs=appArgs)
 debug=args.v
 killEosInstances= not args.leave_running
 dumpErrorDetails=args.dump_error_details
 keepLogs=args.keep_logs
-eosEvmContractRoot=args.eos_evm_contract_root
-eosEvmBuildRoot=args.eos_evm_build_root
+eosEvmContractRoot=args.evm_contract_root
+eosEvmBuildRoot=args.evm_build_root
 genesisJson=args.genesis_json
 
 totalProducerNodes=2
@@ -171,8 +171,8 @@ totalNodes=totalProducerNodes+totalNonProducerNodes
 maxActiveProducers=3
 totalProducers=maxActiveProducers
 
-assert eosEvmContractRoot is not None, "--eos-evm-contract-root is required"
-assert eosEvmBuildRoot is not None, "--eos-evm-build-root is required"
+assert eosEvmContractRoot is not None, "--evm-contract-root is required"
+assert eosEvmBuildRoot is not None, "--evm-build-root is required"
 
 szabo = 1000000000000
 seed=1
@@ -213,6 +213,65 @@ def interact_with_storage_contract(dest, nonce):
         time.sleep(1)
 
     return nonce
+
+def processUrllibRequest(endpoint, payload={}, silentErrors=False, exitOnError=False, exitMsg=None, returnType=ReturnType.json):
+    cmd = f"{endpoint}"
+    req = urllib.request.Request(cmd, method="POST")
+    req.add_header('Content-Type', 'application/json')
+    req.add_header('Accept', 'application/json')
+    data = payload
+    data = json.dumps(data)
+    data = data.encode()
+    if Utils.Debug: Utils.Print("cmd: %s" % (cmd))
+    rtn=None
+    start=time.perf_counter()
+    try:
+        response = urllib.request.urlopen(req, data=data)
+        if returnType==ReturnType.json:
+            rtn = {}
+            rtn["code"] = response.getcode()
+            rtn["payload"] = json.load(response)
+        elif returnType==ReturnType.raw:
+            rtn = response.read()
+        else:
+            unhandledEnumType(returnType)
+
+        if Utils.Debug:
+            end=time.perf_counter()
+            Utils.Print("cmd Duration: %.3f sec" % (end-start))
+            printReturn=json.dumps(rtn) if returnType==ReturnType.json else rtn
+            Utils.Print("cmd returned: %s" % (printReturn[:1024]))
+    except urllib.error.HTTPError as ex:
+        if not silentErrors:
+            end=time.perf_counter()
+            msg=ex.msg
+            errorMsg="Exception during \"%s\". %s.  cmd Duration=%.3f sec." % (cmd, msg, end-start)
+            if exitOnError:
+                Utils.cmdError(errorMsg)
+                Utils.errorExit(errorMsg)
+            else:
+                Utils.Print("ERROR: %s" % (errorMsg))
+                if returnType==ReturnType.json:
+                    rtn = json.load(ex)
+                elif returnType==ReturnType.raw:
+                    rtn = ex.read()
+                else:
+                    unhandledEnumType(returnType)
+        else:
+            return None
+    except:
+        Utils.Print("Unknown exception occurred during processUrllibRequest")
+        raise
+
+    if exitMsg is not None:
+        exitMsg=": " + exitMsg
+    else:
+        exitMsg=""
+    if exitOnError and rtn is None:
+        Utils.cmdError("could not \"%s\" - %s" % (cmd,exitMsg))
+        Utils.errorExit("Failed to \"%s\"" % (cmd))
+
+    return rtn
 
 def getGasPrice():
     return 15000000000
@@ -261,11 +320,10 @@ try:
 
     specificExtraNodeosArgs[2]="--plugin eosio::test_control_api_plugin"
 
-    extraNodeosArgs="--contracts-console --production-pause-vote-timeout-ms 0 --resource-monitor-not-shutdown-on-threshold-exceeded"
+    extraNodeosArgs="--contracts-console"
 
     Print("Stand up cluster")
-    # node 0 (defproducera, defproducerb), node 1 (defproducerc, ...)
-    if cluster.launch(prodCount=2, pnodes=2, topo="bridge", totalNodes=3, extraNodeosArgs=extraNodeosArgs, totalProducers=4, specificExtraNodeosArgs=specificExtraNodeosArgs,delay=5,activateIF=True,biosFinalizer=False) is False:
+    if cluster.launch(prodCount=2, pnodes=2, topo="bridge", totalNodes=3, extraNodeosArgs=extraNodeosArgs, totalProducers=3, specificExtraNodeosArgs=specificExtraNodeosArgs,delay=5) is False:
         errorExit("Failed to stand up eos cluster.")
 
     Print ("Wait for Cluster stabilization")
@@ -283,7 +341,7 @@ try:
         node=cluster.getNode(i)
         node.producers=Cluster.parseProducers(i)
         numProducers=len(node.producers)
-        Print("node %d has producers=%s" % (i, node.producers))
+        Print("node has producers=%s" % (node.producers))
         if numProducers==0:
             if nonProdNode is None:
                 nonProdNode=node
@@ -294,17 +352,16 @@ try:
             prodNodes.append(node)
             producers.extend(node.producers)
 
-    # node2 is the nonProdnode (the bridge node)
-    prodNode = prodNodes[shipNodeNum] # the node the push transactions
-    node = prodNode
-    node1 = prodNodes[1 - shipNodeNum]
+    node=prodNodes[0]
+    node1=prodNodes[1]
+    prodNode = prodNodes[0]
 
     # ***   Identify a block where production is stable   ***
     #verify nodes are in sync and advancing
     cluster.waitOnClusterSync(blockAdvancing=5)
     cluster.biosNode.kill(signal.SIGTERM)
 
-    accounts=createAccountKeys(5)
+    accounts=createAccountKeys(3)
     if accounts is None:
         Utils.errorExit("FAILURE - create keys")
 
@@ -312,8 +369,6 @@ try:
     evmAcc.name = "eosio.evm"
     testAcc = accounts[1]
     minerAcc = accounts[2]
-    aliceAcc = accounts[3]
-    bobAcc = accounts[4]
 
     testWalletName="test"
 
@@ -438,8 +493,16 @@ try:
     trans = prodNode.pushMessage(evmAcc.name, "pushtx", json.dumps(actData), '-p {0}'.format(minerAcc.name))
     prodNode.waitForTransBlockIfNeeded(trans[1], True)
 
+    #
+    # Test some failure cases
+    #
+
+    # incorrect nonce
+    Utils.Print("Send balance again, should fail with wrong nonce")
+    retValue = prodNode.pushMessage(evmAcc.name, "pushtx", json.dumps(actData), '-p {0}'.format(minerAcc.name), silentErrors=True)
+    assert not retValue[0], f"push trx should have failed: {retValue}"
+
     # correct nonce
-    time.sleep(1.0)
     nonce += 1
     gasP = getGasPrice()
     signed_trx = w3.eth.account.sign_transaction(dict(
@@ -457,6 +520,30 @@ try:
     retValue = prodNode.pushMessage(evmAcc.name, "pushtx", json.dumps(actData), '-p {0}'.format(minerAcc.name), silentErrors=True)
     time.sleep(1.0)
     assert retValue[0], f"push trx should have succeeded: {retValue}"
+
+    # incorrect chainid
+    nonce += 1
+    evmChainId = 8888
+    gasP = getGasPrice()
+    signed_trx = w3.eth.account.sign_transaction(dict(
+        nonce=nonce,
+        gas=100000,       #100k Gas
+        gasPrice=gasP,
+        to=Web3.to_checksum_address(toAdd),
+        value=amount,
+        data=b'',
+        chainId=evmChainId
+    ), evmSendKey)
+
+    actData = {"miner":minerAcc.name, "rlptx":Web3.to_hex(get_raw_transaction(signed_trx))[2:]}
+    Utils.Print("Send balance again, with invalid chainid")
+    retValue = prodNode.pushMessage(evmAcc.name, "pushtx", json.dumps(actData), '-p {0}'.format(minerAcc.name), silentErrors=True)
+    time.sleep(1.0)
+    assert not retValue[0], f"push trx should have failed: {retValue}"
+
+    # correct values for continuing
+    nonce -= 1
+    evmChainId = 15555
 
     Utils.Print("Simple Solidity contract")
 # pragma solidity >=0.7.0 <0.9.0;
@@ -498,8 +585,8 @@ try:
     Utils.Print("Generated EVM json genesis file in: %s" % genesisJson)
     Utils.Print("")
     Utils.Print("You can now run:")
-    Utils.Print("  eos-evm-node --plugin=blockchain_plugin --ship-core-account=eosio.evm --ship-endpoint=127.0.0.1:8999 --genesis-json=%s --chain-data=/tmp/data --verbosity=5" % genesisJson)
-    Utils.Print("  eos-evm-rpc --eos-evm-node=127.0.0.1:8080 --http-port=0.0.0.0:8881 --chaindata=/tmp/data --api-spec=eth,debug,net,trace")
+    Utils.Print("  evm-node --plugin=blockchain_plugin --ship-core-account=eosio.evm --ship-endpoint=127.0.0.1:8999 --genesis-json=%s --chain-data=/tmp/data --verbosity=5" % genesisJson)
+    Utils.Print("  evm-rpc --evm-node=127.0.0.1:8080 --http-port=0.0.0.0:8881 --chaindata=/tmp/data --api-spec=eth,debug,net,trace")
     Utils.Print("")
 
     #
@@ -591,90 +678,59 @@ try:
     assert(row4["eth_address"] == "9e126c57330fa71556628e0aabd6b6b6783d99fa")
     assert(row4["balance"] == "0000000000000000000000000000000000000000000000024c9d822e105f8000") # 0x24c9d822e105f8000 => 42414200000000000000 (42.4242 - 0.0100)
 
-    # Switch to version 1
-    Utils.Print("Switch to evm_version 1")
-    actData = {"version":1}
-    trans = prodNode.pushMessage(evmAcc.name, "setversion", json.dumps(actData), '-p {0}'.format(evmAcc.name), silentErrors=False)
-    prodNode.waitForTransBlockIfNeeded(trans[1], True);
-    time.sleep(2)
-
-    # update gas parameter 
-    Utils.Print("Update gas parameter: ram price = 5 EOS per MB, gas price = 10Gwei")
-    trans = prodNode.pushMessage(evmAcc.name, "updtgasparam", json.dumps({"ram_price_mb":"5.0000 EOS","gas_price":10000000000}), '-p {0}'.format(evmAcc.name), silentErrors=False)
-    prodNode.waitForTransBlockIfNeeded(trans[1], True);
-    time.sleep(2)
-
-    Utils.Print("Transfer funds to trigger version change")
     # EVM -> EOS
     #   0x9E126C57330FA71556628e0aabd6B6B6783d99fA private key: 0xba8c9ff38e4179748925335a9891b969214b37dc3723a1754b8b849d3eea9ac0
-    toAdd = makeReservedEvmAddress(convert_name_to_value(aliceAcc.name))
+    toAdd = makeReservedEvmAddress(convert_name_to_value(testAcc.name))
     evmSendKey = "ba8c9ff38e4179748925335a9891b969214b37dc3723a1754b8b849d3eea9ac0"
-    Print("Transfer EVM->EOS funds 1Gwei from account %s to %s" % (evmAcc.name, aliceAcc.name))
+    amount=13.1313
+    transferAmount="13.1313 {0}".format(CORE_SYMBOL)
+    Print("Transfer EVM->EOS funds %s from account %s to %s" % (transferAmount, evmAcc.name, testAcc.name))
     nonce = 0
     gasP = getGasPrice()
     signed_trx = w3.eth.account.sign_transaction(dict(
         nonce=nonce,
-        gas=300000,       #300k Gas
+        gas=100000,       #100k Gas
         gasPrice=gasP,
         to=Web3.to_checksum_address(toAdd),
-        value=int(100000000000000), # 0.0001 EOS = 100,000 Gwei
+        value=int(amount*10000*szabo*100), # .0001 EOS is 100 szabos
         data=b'',
         chainId=evmChainId
     ), evmSendKey)
     actData = {"miner":minerAcc.name, "rlptx":Web3.to_hex(get_raw_transaction(signed_trx))[2:]}
-    trans = prodNode.pushMessage(evmAcc.name, "pushtx", json.dumps(actData), '-p {0}'.format(minerAcc.name), silentErrors=False)
+    trans = prodNode.pushMessage(evmAcc.name, "pushtx", json.dumps(actData), '-p {0}'.format(minerAcc.name), silentErrors=True)
     time.sleep(1.0)
     prodNode.waitForTransBlockIfNeeded(trans[1], True)
     row4=prodNode.getTableRow(evmAcc.name, evmAcc.name, "account", 4) # 4th balance of this integration test
     Utils.Print("\taccount row4: ", row4)
-
     assert(row4["eth_address"] == "9e126c57330fa71556628e0aabd6b6b6783d99fa")
-    assert(row4["balance"] == "0000000000000000000000000000000000000000000000024c9c08bd58ca9000")
-    # diff = 415,000,000,000,000 = 415,000 (Gwei) = (100,000 + (21000) * 15) (Gwei)
-    # {"ram_price_mb":"5.0000 EOS","gas_price":10000000000}
-    # {'consensusParameter': AttributeDict({'gasFeeParameters': AttributeDict({'gasCodedeposit': 477, 'gasNewaccount': 165519, 'gasSset': 167942, 'gasTxcreate': 289062, 'gasTxnewaccount': 165519}
 
-    # Launch eos-evm-node
+    # Launch evm-node
     dataDir = Utils.DataDir + "eos_evm"
-    nodeStdOutDir = dataDir + "/eos-evm-node.stdout"
-    nodeStdErrDir = dataDir + "/eos-evm-node.stderr"
+    nodeStdOutDir = dataDir + "/evm-node.stdout"
+    nodeStdErrDir = dataDir + "/evm-node.stderr"
     shutil.rmtree(dataDir, ignore_errors=True)
     os.makedirs(dataDir)
     outFile = open(nodeStdOutDir, "w")
     errFile = open(nodeStdErrDir, "w")
-    cmd = f"{eosEvmBuildRoot}/bin/eos-evm-node --plugin=blockchain_plugin --ship-core-account=eosio.evm --ship-endpoint=127.0.0.1:8999 --genesis-json={genesisJson} --verbosity=5 --nocolor=1 --chain-data={dataDir}"
+    cmd = f"{eosEvmBuildRoot}/bin/evm-node --plugin=blockchain_plugin --ship-core-account=eosio.evm --ship-endpoint=127.0.0.1:8999 --genesis-json={genesisJson} --verbosity=5 --nocolor=1 --chain-data={dataDir}"
     Utils.Print(f"Launching: {cmd}")
     cmdArr=shlex.split(cmd)
     evmNodePOpen=Utils.delayedCheckOutput(cmdArr, stdout=outFile, stderr=errFile)
 
     time.sleep(4.0) # allow time to sync trxs
 
-    # Launch eos-evm-rpc
-    rpcStdOutDir = dataDir + "/eos-evm-rpc.stdout"
-    rpcStdErrDir = dataDir + "/eos-evm-rpc.stderr"
+    # Launch evm-rpc
+    rpcStdOutDir = dataDir + "/evm-rpc.stdout"
+    rpcStdErrDir = dataDir + "/evm-rpc.stderr"
     outFile = open(rpcStdOutDir, "w")
     errFile = open(rpcStdErrDir, "w")
-    cmd = f"{eosEvmBuildRoot}/bin/eos-evm-rpc --eos-evm-node=127.0.0.1:8080 --http-port=0.0.0.0:8881 --chaindata={dataDir} --api-spec=eth,debug,net,trace"
+    cmd = f"{eosEvmBuildRoot}/bin/evm-rpc --evm-node=127.0.0.1:8080 --http-port=0.0.0.0:8881 --chaindata={dataDir} --api-spec=eth,debug,net,trace"
     Utils.Print(f"Launching: {cmd}")
     cmdArr=shlex.split(cmd)
     os.environ["WEB3_RPC_ENDPOINT"] = "http://127.0.0.1:8881/"
     os.environ["NODEOS_RPC_ENDPOINT"] = "http://127.0.0.1:8881/"
     evmRPCPOpen=Utils.delayedCheckOutput(cmdArr, stdout=outFile, stderr=errFile)
     time.sleep(2.0)
-
-    # ==== gas parameter before the fork ===
-    # verify version 1
-    Utils.Print("Verify evm_version==1 from eos-evm-node")
-    # Verify header.nonce == 1 (evmversion=1)
-    evm_block = w3.eth.get_block('latest')
-    Utils.Print("before fork, the latest evm block is:" + str(evm_block))
-    assert(evm_block["nonce"].hex() == "0000000000000001" or evm_block["nonce"].hex() == "0x0000000000000001")
-    assert("consensusParameter" in evm_block)
-    assert(evm_block["consensusParameter"]["gasFeeParameters"]["gasCodedeposit"] == 477)
-    assert(evm_block["consensusParameter"]["gasFeeParameters"]["gasNewaccount"] == 165519)
-    assert(evm_block["consensusParameter"]["gasFeeParameters"]["gasSset"] == 167942)
-    assert(evm_block["consensusParameter"]["gasFeeParameters"]["gasTxcreate"] == 289062)
-    assert(evm_block["consensusParameter"]["gasFeeParameters"]["gasTxnewaccount"] == 165519)
 
     # Validate all balances are the same on both sides
     rows=prodNode.getTable(evmAcc.name, evmAcc.name, "account")
@@ -688,23 +744,89 @@ try:
             raise
         assert r == int(row['balance'],16), f"{row['eth_address']} {r} != {int(row['balance'],16)}"
 
-    Utils.Print("checking if any error in eos-evm-node")
+    Utils.Print("checking if any error in evm-node")
     foundErr = False
     stdErrFile = open(nodeStdErrDir, "r")
     lines = stdErrFile.readlines()
     for line in lines:
         if line.find("ERROR") != -1 or line.find("CRIT") != -1:
-            Utils.Print("  Found ERROR in EOS EVM NODE log: ", line)
+            Utils.Print("  Found ERROR in EVM NODE log: ", line)
             foundErr = True
 
-    Utils.Print("checking if any error in eos-evm-rpc")
+    Utils.Print("checking if any error in evm-rpc")
     stdErrFile = open(rpcStdErrDir, "r")
     lines = stdErrFile.readlines()
     for line in lines:
         if line.find("ERROR") != -1 or line.find("CRIT") != -1:
-            Utils.Print("  Found ERROR in EOS EVM RPC log: ", line)
+            Utils.Print("  Found ERROR in EVM RPC log: ", line)
             foundErr = True
 
+    # start to test web-socket connection
+    Utils.Print("starting websocket proxy")
+    cmd = f"node {eosEvmBuildRoot}/peripherals/eos-evm-ws-proxy/main.js"
+    cmdArr=shlex.split(cmd)
+    wsStdOutDir = dataDir + "/ws.stdout"
+    wsStdErrDir = dataDir + "/ws.stderr"
+    wsoutFile = open(wsStdOutDir, "w")
+    wserrFile = open(wsStdErrDir, "w")
+    wsproxy=Utils.delayedCheckOutput(cmdArr, stdout=wsoutFile, stderr=wserrFile)
+    time.sleep(3.0)
+
+    stdErrFile = open(wsStdErrDir, "r")
+    lines = stdErrFile.readlines()
+    for line in lines:
+        Utils.Print("wsStdErrlog:", line)
+
+    stdOutFile = open(wsStdOutDir, "r")
+    lines = stdOutFile.readlines()
+    for line in lines:
+        Utils.Print("wsStdOutlog:", line)
+
+    time.sleep(5.0)
+
+    ws = websocket.WebSocket()
+    Utils.Print("start to connect ws://localhost:3333")
+    ws.connect("ws://localhost:3333")
+    ws.send("{\"method\":\"eth_blockNumber\",\"params\":[\"0x1\",false],\"id\":123}")
+    Utils.Print("send eth_blockNumber to websocket proxy")
+
+    recevied_msg=ws.recv()
+    res=json.loads(recevied_msg)
+    Utils.Print("eth_blockNumber response from websocket:" + recevied_msg)
+    assert(res["id"] == 123)
+    assert(res["jsonrpc"] == "2.0")
+
+    # try eth subscrible to new heads
+    Utils.Print("send eth_subscribe for newHeads")
+    ws.send("{\"jsonrpc\":  \"2.0\", \"id\": 124, \"method\":  \"eth_subscribe\", \"params\":[\"newHeads\"]}")
+    recevied_msg=ws.recv()
+    res=json.loads(recevied_msg)
+    Utils.Print("eth_subscribe response from websocket:" + recevied_msg)
+    assert(res["id"] == 124)
+    sub_id=res["result"]
+    assert(len(sub_id) > 0)
+
+    # try to receive some blocks from websocket server
+    Utils.Print("try to evm blocks from websocket up to the latest one")
+    block_count = 0
+    prev_hash=""
+    while True:
+        time0 = time.time()
+        recevied_msg=ws.recv()
+        time1 = time.time()
+        res=json.loads(recevied_msg)
+        block_json=res["params"]["result"]
+        last_ws_evm_blocknum=(block_json["number"])
+        hash=block_json["hash"]
+        parent_hash=block_json["parentHash"]
+        Utils.Print("received block {0} from websocket, hash={1}..., parent={2}...".format(last_ws_evm_blocknum, hash[0:8], parent_hash[0:8]))
+        if block_count > 0:
+            assert(len(parent_hash) > 0 and parent_hash == prev_hash)
+        prev_hash=hash
+        block_count = block_count + 1
+        if time1 - time0 > 0.9:
+            break;
+    
     tries = 120
     blockNum = node.getHeadBlockNum()
     Utils.Print("testing forking behavior: catching defproducera, current native block number is {0}".format(blockNum))
@@ -733,11 +855,10 @@ try:
         Utils.errorExit("failed to catch a block produced by defproducerb")
 
     blockProducer1=node1.getBlockProducerByNum(blockNum)
-    lib = info["last_irreversible_block_num"]
-    Utils.Print("before kill, block number %d is producer by %s in node0, LIB %d" % (blockNum, blockProducer, lib))
-    Utils.Print("before kill, block number %d is producer by %s in node1, LIB %d" % (blockNum, blockProducer1, lib))
+    Utils.Print("block number %d is producer by %s in node0" % (blockNum, blockProducer))
+    Utils.Print("block number %d is producer by %s in node1" % (blockNum, blockProducer1))
 
-    # ===== start to make a fork, killing the "bridge" node ====
+    # ***   Killing the "bridge" node   ***
     Print("Sending command to kill \"bridge\" node to separate the 2 producer groups.")
     # # block number to start expecting node killed after
     preKillBlockNum=blockNum
@@ -787,6 +908,28 @@ try:
     if blockProducer0==blockProducer1:
         errorExit("Divergence not found")
 
+    # receive blocks from websocket server
+    Utils.Print("receive some blocks from websocket up to the latest blocks, which should cover the expected diverage point");
+    time.sleep(1.0)
+    hash_dict = {}
+    while True:
+        time0 = time.time()
+        recevied_msg=ws.recv()
+        time1 = time.time()
+        res=json.loads(recevied_msg)
+        block_json=res["params"]["result"]
+        last_ws_evm_blocknum=(block_json["number"])
+        hash=block_json["hash"]
+        parent_hash=block_json["parentHash"]
+        Utils.Print("received block {0} from websocket, hash={1}..., parent={2}...".format(last_ws_evm_blocknum, hash[0:8], parent_hash[0:8]))
+        if block_count > 0:
+            assert(len(parent_hash) > 0 and parent_hash == prev_hash)
+        prev_hash=hash
+        hash_dict[hash] = last_ws_evm_blocknum
+        block_count = block_count + 1
+        if (time1 - time0 > 0.9):
+           break
+
     #verify that the non producing node is not alive (and populate the producer nodes with current getInfo data to report if
     #an error occurs)
     time.sleep(2.0) # give sometime for the nonProdNode to shutdown
@@ -802,78 +945,12 @@ try:
     blockProducers0=[]
     blockProducers1=[]
 
+    for prodNode in prodNodes:
+        info=prodNode.getInfo()
+        Print("node info: %s" % (info))
+
     killBlockNum=blockNum
     lastBlockNum=killBlockNum+(maxActiveProducers - 1)*inRowCountPerProducer+1  # allow 1st testnet group to produce just 1 more block than the 2nd
-
-    # update gas parameter in minor fork (node0), but not node1
-    Utils.Print("Update gas parameter in minor fork: ram price = 6 EOS per MB, gas price = 10Gwei")
-    trans = prodNode.pushMessage(evmAcc.name, "updtgasparam", json.dumps({"ram_price_mb":"6.0000 EOS","gas_price":10000000000}), '-p {0}'.format(evmAcc.name), silentErrors=False)
-    prodNode.waitForTransBlockIfNeeded(trans[1], True);
-    time.sleep(2)
-
-    # EVM -> EVM
-    #   0x9E126C57330FA71556628e0aabd6B6B6783d99fA private key: 0xba8c9ff38e4179748925335a9891b969214b37dc3723a1754b8b849d3eea9ac0
-    toAdd = 0x4ce0ca184bc155a5df5dae2f4643cba60eb1a9ed
-    evmSendKey = "ba8c9ff38e4179748925335a9891b969214b37dc3723a1754b8b849d3eea9ac0"
-    Print("In minor fork, transfer EVM->EVM funds 1Gwei from account %s to %s to trigger gas parameter change" % (evmAcc.name, toAdd))
-    nonce = 1
-    gasP = getGasPrice()
-    signed_trx = w3.eth.account.sign_transaction(dict(
-        nonce=nonce,
-        gas=300000,       #300k Gas
-        gasPrice=gasP,
-        to=Web3.to_checksum_address(toAdd),
-        value=int(100000000000000), # 0.0001 EOS = 100,000 Gwei
-        data=b'',
-        chainId=evmChainId
-    ), evmSendKey)
-    actData = {"miner":minerAcc.name, "rlptx":Web3.to_hex(get_raw_transaction(signed_trx))[2:]}
-
-    # push transaction to node0's minor fork (proda, prodb)
-    trans = prodNode.pushMessage(evmAcc.name, "pushtx", json.dumps(actData), '-p {0}'.format(minerAcc.name), silentErrors=False)
-    time.sleep(1.0)
-    prodNode.waitForTransBlockIfNeeded(trans[1], True)
-    row4=prodNode.getTableRow(evmAcc.name, evmAcc.name, "account", 4) 
-    Utils.Print("In minor fork account row4 in node0: ", row4)
-
-    assert(row4["eth_address"] == "9e126c57330fa71556628e0aabd6b6b6783d99fa")
-    assert(row4["balance"] == "0000000000000000000000000000000000000000000000024c8ff6c362545600")
-
-    # push the same transaction to node1's minor fork (prodc)
-    trans = node1.pushMessage(evmAcc.name, "pushtx", json.dumps(actData), '-p {0}'.format(minerAcc.name), silentErrors=False)
-    time.sleep(1.0)
-    node1.waitForTransBlockIfNeeded(trans[1], True)
-    row4_node1=node1.getTableRow(evmAcc.name, evmAcc.name, "account", 4)
-    Utils.Print("In minor fork, account row4 in node1: ", row4_node1)
-    assert(row4_node1["eth_address"] == "9e126c57330fa71556628e0aabd6b6b6783d99fa")
-    assert(row4_node1["balance"] == "0000000000000000000000000000000000000000000000024c91bd38333b1600")
-    assert(row4["balance"] != row4_node1["balance"])
-
-    # verify eos-evm-node get the new gas parameter from the minor fork
-    evm_block = w3.eth.get_block('latest')
-    Utils.Print("in minor fork, the latest evm block is:" + str(evm_block))
-    assert(evm_block["nonce"].hex() == "0000000000000001" or evm_block["nonce"].hex() == "0x0000000000000001")
-    assert("consensusParameter" in evm_block)
-
-    assert(evm_block["consensusParameter"]["gasFeeParameters"]["gasCodedeposit"] == 573)
-    assert(evm_block["consensusParameter"]["gasFeeParameters"]["gasNewaccount"] == 198831)
-    assert(evm_block["consensusParameter"]["gasFeeParameters"]["gasSset"] == 201158)
-    assert(evm_block["consensusParameter"]["gasFeeParameters"]["gasTxcreate"] == 347238)
-    assert(evm_block["consensusParameter"]["gasFeeParameters"]["gasTxnewaccount"] == 198831)
-
-    # Validate all balances are the same between node0(prodNode) and eos-evm-node
-    Utils.Print("Validate all balances are the same between node0(minor-fork) and eos-evm-node")
-    rows=prodNode.getTable(evmAcc.name, evmAcc.name, "account")
-    for row in rows['rows']:
-        Utils.Print("0x{0} balance is {1} in leap".format(row['eth_address'], int(row['balance'],16)))
-        r = -1
-        try:
-            r = w3.eth.get_balance(Web3.to_checksum_address('0x'+row['eth_address']))
-        except:
-            Utils.Print("ERROR - RPC endpoint not available - Exception thrown - Checking 0x{0} balance".format(row['eth_address']))
-            raise
-        Utils.Print("0x{0} balance is {1} in eos-evm-rpc".format(row['eth_address'], r))
-        assert r == int(row['balance'],16), f"{row['eth_address']} {r} != {int(row['balance'],16)}"
 
     Print("Tracking the blocks from the divergence till there are 10*12 blocks on one chain and 10*12+1 on the other, from block %d to %d" % (killBlockNum, lastBlockNum))
 
@@ -882,6 +959,7 @@ try:
         blockProducer1=prodNodes[1].getBlockProducerByNum(blockNum)
         blockProducers0.append({"blockNum":blockNum, "prod":blockProducer0})
         blockProducers1.append({"blockNum":blockNum, "prod":blockProducer1})
+
 
     Print("Analyzing the producers from the divergence to the lastBlockNum and verify they stay diverged, expecting divergence at block %d" % (killBlockNum))
 
@@ -902,10 +980,6 @@ try:
     # if node1.verifyAlive():
     #     Utils.errorExit("Expected the node 1 to have shutdown.")
 
-    blockNum0 = prodNodes[0].getBlockNum()
-    blockNum1 = prodNodes[1].getBlockNum()
-    WaitUntilBlockNum = max(blockNum0, blockNum1) + 20
-    Print("Before relaunching the bridge node: prod[0] head_block_num %d, prod[1] head_block_num %d" % (blockNum0, blockNum1))
     Print("Relaunching the non-producing bridge node to connect the node 0 (defproducera, defproducerb)")
     if not nonProdNode.relaunch(chainArg=" --hard-replay "):
         errorExit("Failure - (non-production) node %d should have restarted" % (nonProdNode.nodeNum))
@@ -915,7 +989,7 @@ try:
     # if not node1.relaunch(chainArg=" --enable-stale-production "):
     #     errorExit("Failure - (non-production) node 1 should have restarted")
 
-    Print("Waiting to allow forks to resolve from block %d" % (killBlockNum))
+    Print("Waiting to allow forks to resolve")
     time.sleep(3)
 
     for prodNode in prodNodes:
@@ -938,11 +1012,8 @@ try:
         if match:
             if checkHead:
                 forkResolved=True
-                Print("Great! fork resolved!!! killBlockNum %d, current head_number %d, producer %s" % (killBlockNum, checkMatchBlock, blockProducer0))
                 break
             else:
-                Print("Block %d has producer %s in both nodes, continue to check head" %(checkMatchBlock, blockProducer0))
-                assert (blockProducer0 == "defproducerc" or blockProducer0 == "defproducerd"), "node0 must switch fork at %d" % (killBlockNum)
                 checkHead=True
                 continue
         Print("Fork has not resolved yet, wait a little more. Block %s has producer %s for node_00 and %s for node_01.  Original divergence was at block %s. Wait time remaining: %d" % (checkMatchBlock, blockProducer0, blockProducer1, killBlockNum, remainingChecks))
@@ -952,45 +1023,10 @@ try:
     assert forkResolved, "fork was not resolved in a reasonable time. node_00 lib {} head {}, node_01 lib {} head {}".format(\
         prodNodes[0].getIrreversibleBlockNum(), prodNodes[0].getHeadBlockNum(), \
         prodNodes[1].getIrreversibleBlockNum(), prodNodes[1].getHeadBlockNum())
-    
-    # wait until the current chain is longer than any minor fork happened in the past
-    # ensure the EVM oracle to switch to longer fork
-    blockNum0 = prodNodes[0].getBlockNum()
-    WaitUntilBlockNum = max(WaitUntilBlockNum, killBlockNum + 30)
-    prodNodes[0].waitForBlock(WaitUntilBlockNum)
 
-    row4=prodNode.getTableRow(evmAcc.name, evmAcc.name, "account", 4) 
-    Utils.Print("\taccount row4 in node0: ", row4)
-
-    assert(row4["eth_address"] == "9e126c57330fa71556628e0aabd6b6b6783d99fa")
-    assert(row4["balance"] == "0000000000000000000000000000000000000000000000024c91bd38333b1600")
-    assert(row4["balance"] == row4_node1["balance"])
-
-    evm_block = w3.eth.get_block('latest')
-    Utils.Print("after fork resolved, the latest evm block is:" + str(evm_block))
-    assert(evm_block["nonce"].hex() == "0000000000000001" or evm_block["nonce"].hex() == "0x0000000000000001")
-    assert("consensusParameter" in evm_block)
-
-    assert(evm_block["consensusParameter"]["gasFeeParameters"]["gasCodedeposit"] == 477)
-    assert(evm_block["consensusParameter"]["gasFeeParameters"]["gasNewaccount"] == 165519)
-    assert(evm_block["consensusParameter"]["gasFeeParameters"]["gasSset"] == 167942)
-    assert(evm_block["consensusParameter"]["gasFeeParameters"]["gasTxcreate"] == 289062)
-    assert(evm_block["consensusParameter"]["gasFeeParameters"]["gasTxnewaccount"] == 165519)
-
-    # Validate all balances are the same between node0(prodNode) and eos-evm-node
-    Utils.Print("Validate all balances are the same between node0 and eos-evm-node after fork resolved")
-    time.sleep(1.0)
-    rows=prodNode.getTable(evmAcc.name, evmAcc.name, "account")
-    for row in rows['rows']:
-        Utils.Print("0x{0} balance is {1} in leap".format(row['eth_address'], int(row['balance'],16)))
-        r = -1
-        try:
-            r = w3.eth.get_balance(Web3.to_checksum_address('0x'+row['eth_address']))
-        except:
-            Utils.Print("ERROR - RPC endpoint not available - Exception thrown - Checking 0x{0} balance".format(row['eth_address']))
-            raise
-        Utils.Print("0x{0} balance is {1} in eos-evm-rpc".format(row['eth_address'], r))
-        assert r == int(row['balance'],16), f"{row['eth_address']} {r} != {int(row['balance'],16)}"
+    for prodNode in prodNodes:
+        info=prodNode.getInfo()
+        Print("node info: %s" % (info))
 
     # ensure all blocks from the lib before divergence till the current head are now in consensus
     endBlockNum=max(prodNodes[0].getBlockNum(), prodNodes[1].getBlockNum())
@@ -1002,6 +1038,7 @@ try:
         blockProducer1=prodNodes[1].getBlockProducerByNum(blockNum)
         blockProducers0.append({"blockNum":blockNum, "prod":blockProducer0})
         blockProducers1.append({"blockNum":blockNum, "prod":blockProducer1})
+
 
     Print("Analyzing the producers from the saved LIB to the current highest head and verify they match now")
 
@@ -1015,7 +1052,43 @@ try:
         Utils.errorExit("Did not find find block %s (the original divergent block) in blockProducers0, test setup is wrong." % (killBlockNum))
     Print("Fork resolved and determined producer %s for block %s" % (resolvedKillBlockProducer, killBlockNum))
 
+    # try to receive some blocks from websocket server
+    Utils.Print("receive blocks from websocket up to the latest blocks")
+    fork_switched = False
+    fork_hash = ""
+    while True:
+        time0 = time.time()
+        recevied_msg=ws.recv()
+        time1 = time.time()
+        res=json.loads(recevied_msg)
+        block_json=res["params"]["result"]
+        last_ws_evm_blocknum=(block_json["number"])
+        hash=block_json["hash"]
+        parent_hash=block_json["parentHash"]
+        Utils.Print("received block {0} from websocket, hash={1}..., parent={2}...".format(last_ws_evm_blocknum, hash[0:8], parent_hash[0:8]))
+        if block_count > 0:
+            assert(len(parent_hash) > 0)
+            if parent_hash != prev_hash:
+                assert(parent_hash in hash_dict)
+                fork_switched = True
+                fork_hash = parent_hash
+                Utils.Print("EVM chain fork switch detected, block linkable")
+        prev_hash=hash
+        hash_dict[hash] = last_ws_evm_blocknum
+        block_count = block_count + 1
+        if time1 - time0 > 0.9:
+            break;
+
+    assert(fork_switched == True, "no EVM chain fork switch detected")
+    Utils.Print("fork swtiched at hash {0}".format(fork_hash))
+
+    blockProducers0=[]
+    blockProducers1=[]
+    ws.close()
+
     testSuccessful= not foundErr
+except Exception as ex:
+    Utils.Print("Exception:" + str(ex))
 finally:
     TestHelper.shutdown(cluster, walletMgr, testSuccessful=testSuccessful, dumpErrorDetails=dumpErrorDetails)
     if killEosInstances:
