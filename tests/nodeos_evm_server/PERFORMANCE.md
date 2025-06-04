@@ -12,21 +12,23 @@ _set stack-size in src/CMakeList.txt to_ **16384** _before building_
 
 ```
 cd ~/evmperf
-git clone https://github.com/eosnetworkfoundation/eos-evm
-cd eos-evm/contract
+git clone https://github.com/VaultaFoundation/evm-contract
+cd evm-contract
 mkdir build
 cd build
 cmake -DCMAKE_BUILD_TYPE=Release -DWITH_LOGTIME=ON ..
 make -j4
 ```
 
-### Build eos-evm-node and eos-evm-rpc
+### Build evm-node and evm-rpc
 ```
-cd ~/evmperf/eos-evm
+cd ~/evmperf
+git clone https://github.com/VaultaFoundation/evm-node
+cd evm-node
 mkdir build
 cd build
 cmake -DCMAKE_BUILD_TYPE=Release ..
-make -j4 eos-evm-node eos-evm-rpc
+make -j4 evm-node evm-rpc
 ```
 
 
@@ -43,10 +45,10 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 make -j4
 ```
 
-### Setup nodeos_eos_evm_server.py python env
+### Setup nodeos_evm_server.py python env
 ```
 cd ~/evmperf/leap/build/tests
-ln -s ~/evmperf/eos-evm/tests/leap/nodeos_eos_evm_server.py nodeos_eos_evm_server.py
+ln -s ~/evmperf/eos-evm/tests/leap/nodeos_evm_server.py nodeos_evm_server.py
 sed -i 's/SYS/EOS/g' core_symbol.py
 python3 -m venv venv
 source venv/bin/activate
@@ -55,58 +57,58 @@ pip install 'web3>=6' flask flask-cors
 
 
 ### Launch nodeos and deploy EVM contract
-_use --use-eos-vm-oc=1 when launching **nodeos_eos_evm_server.py** if you want to measure OC performance_
+_use --use-eos-vm-oc=1 when launching **nodeos_evm_server.py** if you want to measure OC performance_
 
 ```
 cd ~/evmperf/leap/build/tests
 source venv/bin/activate
 cd ..
-./tests/nodeos_eos_evm_server.py --leave-running --eos-evm-contract-root ~/evmperf/eos-evm/contract/build
+./tests/nodeos_evm_server.py --leave-running --evm-contract-root ~/evmperf/eos-evm/contract/build
 ```
 
-(_wait until nodeos_eos_evm_server start listening at localhost:5000_)
+(_wait until nodeos_evm_server start listening at localhost:5000_)
 
-### Launch eos-evm-node
+### Launch evm-node
 ```
 cd ~/evmperf/eos-evm/build/bin
 rm -rf chaindata etl-temp config-dir
-./eos-evm-node --plugin=blockchain_plugin --ship-endpoint=127.0.0.1:8999 --genesis-json=$HOME/evmperf/leap/build/eos-evm-genesis.json --verbosity=4
+./evm-node --plugin=blockchain_plugin --ship-endpoint=127.0.0.1:8999 --genesis-json=$HOME/evmperf/leap/build/evm-genesis.json --verbosity=4
 ```
 
-### Launch eos-evm-rpc
+### Launch evm-rpc
 ```
 cd ~/evmperf/eos-evm/build/bin
-./eos-evm-rpc --eos-evm-node=127.0.0.1:8080 --http-port=0.0.0.0:8881 --chaindata=./ --api-spec=eth,debug,net,trace --verbosity=4
+./evm-rpc --evm-node=127.0.0.1:8080 --http-port=0.0.0.0:8881 --chaindata=./ --api-spec=eth,debug,net,trace --verbosity=4
 ```
 
 ### Install scripts dependencies
 ```
-cd ~/evmperf/eos-evm/tests/leap/nodeos_eos_evm_server
+cd ~/evmperf/eos-evm/tests/leap/nodeos_evm_server
 yarn install
 ```
 
 
 ### Deploy Uniswap V2
 ```
-cd ~/evmperf/eos-evm/tests/leap/nodeos_eos_evm_server
+cd ~/evmperf/eos-evm/tests/leap/nodeos_evm_server
 npx hardhat run scripts/deploy-uniswap.js
 ```
 
 ### Deploy Recursive contract
 ```
-cd ~/evmperf/eos-evm/tests/leap/nodeos_eos_evm_server
+cd ~/evmperf/eos-evm/tests/leap/nodeos_evm_server
 npx hardhat run scripts/deploy-recursive.js
 ```
 
 ### Allow Uniswap router to transfer AAA tokens
 ```
-cd ~/evmperf/eos-evm/tests/leap/nodeos_eos_evm_server
+cd ~/evmperf/eos-evm/tests/leap/nodeos_evm_server
 npx hardhat approve --erc20 0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9 --router 0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0 --amount 10000
 ```
 
 ### Tail logs _(separate console)_
 ```
-cd ~/evmperf/eos-evm/tests/leap/nodeos_eos_evm_server
+cd ~/evmperf/eos-evm/tests/leap/nodeos_evm_server
 ./extract-logtime-cmd.sh ~/evmperf/leap/build/var/lib/node_01/stderr.txt
 ```
 

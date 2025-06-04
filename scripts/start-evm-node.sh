@@ -18,13 +18,13 @@ fi
 
 mkdir -p data-evm-node/snapshots
 
-if [ ! -f $EVM_NODE_ROOT/build/src/eos-evm-node ]; then
-  echo $EVM_NODE_ROOT/build/src/eos-evm-node not found
+if [ ! -f $EVM_NODE_ROOT/build/src/evm-node ]; then
+  echo $EVM_NODE_ROOT/build/src/evm-node not found
   exit 1
 fi
 
-if [ ! -f $EVM_NODE_ROOT/build/src/eos-evm-rpc ]; then
-  echo $EVM_NODE_ROOT/build/src/eos-evm-rpc not found
+if [ ! -f $EVM_NODE_ROOT/build/src/evm-rpc ]; then
+  echo $EVM_NODE_ROOT/build/src/evm-rpc not found
   exit 1
 fi
 
@@ -33,18 +33,18 @@ if [ ! -f $EVM_NODE_ROOT/peripherals/eos-evm-ws-proxy/main.js ]; then
   exit 1
 fi
 
-if [ ! -f eos-evm-genesis.json ]; then
-  echo "Waiting for eos-evm-genesis.json ..."
-  while [ ! -f eos-evm-genesis.json ]; do
+if [ ! -f evm-genesis.json ]; then
+  echo "Waiting for evm-genesis.json ..."
+  while [ ! -f evm-genesis.json ]; do
     sleep 1
   done
 fi
 
-echo "Launching EOS EVM Node"
-$EVM_NODE_ROOT/build/src/eos-evm-node \
+echo "Launching EVM Node"
+$EVM_NODE_ROOT/build/src/evm-node \
   --plugin=blockchain_plugin \
   --ship-endpoint=127.0.0.1:8999 \
-  --genesis-json=eos-evm-genesis.json \
+  --genesis-json=evm-genesis.json \
   --ship-core-account=eosio.evm \
   --chain-data=data-evm-node \
   --ship-max-retry=1000000 \
@@ -55,9 +55,9 @@ $EVM_NODE_ROOT/build/src/eos-evm-node \
 
 sleep 2
 
-echo "Launching EOS EVM Rpc"
-$EVM_NODE_ROOT/build/src/eos-evm-rpc \
-  --eos-evm-node=127.0.0.1:8080 \
+echo "Launching EVM Rpc"
+$EVM_NODE_ROOT/build/src/evm-rpc \
+  --evm-node=127.0.0.1:8080 \
   --http-port=0.0.0.0:8881 \
   --chaindata=data-evm-node \
   --stdout=1 \
@@ -67,7 +67,7 @@ $EVM_NODE_ROOT/build/src/eos-evm-rpc \
 
 sleep 2
 
-echo "Launching EOS EVM WS proxy"
+echo "Launching EVM WS proxy"
 if [ ! -d "node_modules" ]; then
   cp $EVM_NODE_ROOT/peripherals/eos-evm-ws-proxy/package.json .
   npm install
